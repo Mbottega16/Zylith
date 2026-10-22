@@ -37,4 +37,4 @@ The app is static and can be hosted by GitHub Pages, Cloudflare Pages, or anothe
 
 ## Hosting status
 
-The source repository is private at `https://github.com/Mbottega16/Zylith`. This GitHub account plan does not permit GitHub Pages for a private repository, and we are keeping the source private. A temporary Vercel preview URL is being used for the first live look; a permanent deployment needs a logged-in hosting account/project.
+The source repository is private at `https://github.com/Mbottega16/Zylith`. This GitHub account plan does not permit GitHub Pages for a private repository, and we are keeping the source private. The anonymous Vercel preview is temporary and expires after 60 minutes; it is only a first live look. A persistent public URL needs a logged-in hosting account/project.

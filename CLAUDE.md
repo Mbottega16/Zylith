@@ -20,4 +20,4 @@ Run `python3 -m http.server 4173` in this directory and check the app at `http:/
 No vendored game files, game archives, ROMs, or downloaded content belong in this repo. Ignore `.DS_Store`, `__pycache__/`, and local screenshots.
 
 ## Session Handoff (Last Worked On · Current State · Next Up)
-- 2026-10-22: Initial static Zylith MVP created in the vault. Need user review, verify official starter links, arrange private GitHub remote/push, then choose and approve a public hosting route. Shared submissions/cross-device sync and automated discovery are not implemented.
+- 2026-10-22: Static MVP pushed to private `Mbottega16/Zylith` on `main`. Anonymous Vercel preview: `https://rapid-emerald-a7uwg1m.tmp.now` (expires after 60 minutes). Verified page and assets return HTTP 200. GitHub Pages could not be enabled because the current plan does not allow Pages from private repos. Next: connect an authorized hosting account/project for a permanent URL, verify and expand listings, then consider a moderated shared catalog. Local submissions remain browser-only.
