@@ -17,7 +17,7 @@ cd "$HOME\OneDrive\Desktop\Zylith"
 ./run.bat
 ```
 
-The repository is private, so sign in to GitHub in Git Credential Manager when prompted. The app opens at `http://localhost:4173` on that computer.
+The repository is public, so no special GitHub permissions are needed. The app opens at `http://localhost:4173` on that computer.
 
 ## Current features
 
@@ -43,7 +43,7 @@ The repository is private, so sign in to GitHub in Git Credential Manager when p
 
 ## Hosting status
 
-The source repository is private at `https://github.com/Mbottega16/Zylith`. This GitHub account plan does not permit GitHub Pages for a private repository, and we are keeping the source private. The anonymous Vercel preview is temporary and expires after 60 minutes; it is only a first live look. A persistent public URL needs a logged-in hosting account/project.
+The source repository is public at <https://github.com/Mbottega16/Zylith>. GitHub Pages publishes the static site from the `main` branch root at <https://mbottega16.github.io/Zylith/>. Updates pushed to `main` are published automatically. The temporary Vercel preview is superseded.
 
 ## Catalog categories and attribution
 
