@@ -9,6 +9,16 @@ A responsive discovery hub for browser-playable indie games and unusual internet
 
 No package install or build step is needed. Google Fonts are an optional external enhancement; the app falls back to system fonts offline.
 
+To get it onto another Windows desktop, open PowerShell and run:
+
+```powershell
+git clone https://github.com/Mbottega16/Zylith.git "$HOME\OneDrive\Desktop\Zylith"
+cd "$HOME\OneDrive\Desktop\Zylith"
+./run.bat
+```
+
+The repository is private, so sign in to GitHub in Git Credential Manager when prompted. The app opens at `http://localhost:4173` on that computer.
+
 ## Current features
 
 - Responsive arcade-style landing page with custom CSS artwork.
@@ -23,10 +33,6 @@ No package install or build step is needed. Google Fonts are an optional externa
 - “Submit a game” stores it only in the current browser. There is no shared database, moderation inbox, accounts, or cross-device sync yet.
 - This build does not crawl or download games. Discovery ingestion should use creator-provided APIs/feeds or a reviewed submission queue, and should store links/metadata only unless distribution rights are explicit.
 - Static hosting can serve the directory, but cannot provide shared submissions without adding a backend.
-
-## Deploy
-
-The app is static and can be hosted by GitHub Pages, Cloudflare Pages, or another static host. GitHub Pages deployment should only be enabled after deciding the repository/site visibility and confirming the public listing content. For a quick private local run on another computer, clone the repository and use the included launcher.
 
 ## Files
 
