@@ -44,3 +44,15 @@ The repository is private, so sign in to GitHub in Git Credential Manager when p
 ## Hosting status
 
 The source repository is private at `https://github.com/Mbottega16/Zylith`. This GitHub account plan does not permit GitHub Pages for a private repository, and we are keeping the source private. The anonymous Vercel preview is temporary and expires after 60 minutes; it is only a first live look. A persistent public URL needs a logged-in hosting account/project.
+
+## Catalog categories and attribution
+
+Every listing has an `accessType` of exactly `instant`, `files`, or `source`:
+
+- `instant` — upstream catalog explicitly marks an active browser demo as requiring no game files; includes explicitly marked no-file demos.
+- `files` — active browser port explicitly says users must supply their own legally obtained game files.
+- `source` — project/source page, or a browser port whose file requirements are not confirmed. This label does **not** promise that the linked page launches or is playable.
+
+`playMode` explains the specific access/requirement status. Links only; Zylith does not download or host games, ROMs, binaries, or game assets. The catalog is not an endorsement or confirmation of rights to the underlying games; review each destination and applicable rights before launch.
+
+The expanded metadata-only directory is derived from [SubmitGame/awesome-decomp-games](https://github.com/SubmitGame/awesome-decomp-games), whose repository `LICENSE` identifies its catalog/data as **CC0 1.0**. We retain a source-project link per listing where available and include no upstream images, screenshots, binaries, or game files. The source project notes that links point to third-party projects whose individual licenses and terms remain with their authors. Upstream link-check metadata was current in the retrieved catalog snapshot (generated 2026-10-22); external links can change.
