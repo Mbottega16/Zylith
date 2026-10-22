@@ -35,6 +35,6 @@ The app is static and can be hosted by GitHub Pages, Cloudflare Pages, or anothe
 - `games.js` — starter game listings
 - `app.js` — filters, favorites, dialogs, and local submission workflow
 
-## GitHub Pages
+## Hosting status
 
-`.github/workflows/pages.yml` deploys the static app from the private `main` branch. The GitHub Pages site setting must be enabled for this repository/account; if the account plan does not permit Pages from private repositories, keep the repository private and use a host that can deploy from private source rather than changing repository visibility.
+The source repository is private at `https://github.com/Mbottega16/Zylith`. This GitHub account plan does not permit GitHub Pages for a private repository, and we are keeping the source private. A temporary Vercel preview URL is being used for the first live look; a permanent deployment needs a logged-in hosting account/project.
