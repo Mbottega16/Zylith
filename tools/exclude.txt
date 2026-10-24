@@ -1,0 +1,10 @@
+# Hand-checked removals from the harvested catalog (owner/repo, lower case).
+emilk/egui
+ill-inc/biomes-game
+prismarinejs/prismarine-web-client
+2003scape/rsc-client
+cyberdex/pixi-game-ui
+mattbruv/ccsr
+levy-street/pokemon-claude-red
+apoorvlathey/crypto-car-battle
+deepnight/ld39-zerovoltx

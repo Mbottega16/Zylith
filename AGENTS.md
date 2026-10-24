@@ -1,24 +1,28 @@
 # Zylith — repo instructions
 
 ## Purpose
-A static browser-game discovery hub. It points visitors to creator-hosted games; it does not mirror/download game builds or copyrighted assets.
+A browser hub for reverse-engineered, re-implemented, and open-source games that run in a browser tab, plus a safe way to add your own. Click a game and play. Nothing in the catalog may need a game the player owns.
 
 ## Architecture
-Vanilla HTML/CSS/JavaScript. No build system or runtime dependencies. `games.js` is the seed catalog; `app.js` owns browser-local search, sorting, favorites, and community submission; `styles.css` owns responsive UI. `run.command` and `run.bat` launch Python's static server.
+Vanilla HTML/CSS/JavaScript. No build system or runtime dependencies. `games.js` is the catalog (about 70 rows, all checked in a browser). `app.js` owns browsing and the game dialog. `lab/` owns adding games: `scan.js` (static scanner), `zip.js`, `pack.js` (GitHub, zip, folder), `frame.js` (sandbox iframe and probe), `store.js` (IndexedDB), `lab-ui.js` (player and Add dialogs). `tools/` builds the catalog. `tests/` holds the scanner unit tests and two Playwright suites.
 
 ## Rules
-- Treat all game listings as unverified until the creator/page, URL, playability, and permissions have been checked.
-- Do not add ROMs, binaries, extracted assets, or scraped game bodies. Use creator-authorized links and concise factual metadata.
-- User submissions remain local-only unless a reviewed backend and moderation workflow are deliberately implemented.
-- Do not publish or enable public hosting without user approval.
-- Keep the app dependency-free unless there's a clear reason to add a package.
+- Nothing in the catalog may require owning the game. Drop pages that ask for ROMs, ISOs, or game files. Do not list unofficial ports of commercial games.
+- Do not add ROMs, binaries, extracted assets, or scraped game bodies to the repo. Catalog rows are links.
+- Added games run only inside the sandbox iframe (`sandbox="allow-scripts allow-pointer-lock"`, no `allow-same-origin`) with the CSP from `lab/frame.js`. Never loosen the sandbox flags or the CSP without re-running `tests/e2e-frame.mjs`.
+- Added games stay in the player's browser (IndexedDB). There is no server and no sharing.
+- Favorites were removed on purpose (owner's call, 2026-10-24). Do not add them back.
+- Keep the app dependency-free unless there is a clear reason to add a package.
+- Write files with LF or CRLF consistently; this repo's checked-out files are CRLF on Windows.
 
 ## Verification
-Run `python3 -m http.server 4173` in this directory and check the app at `http://localhost:4173`; verify search, filters, favorites, details, and local submission. Static smoke check: `python3 -m http.server 4173` must serve `index.html`, `styles.css`, `games.js`, and `app.js`.
+- `node tests/scan.test.mjs` (scanner, no browser).
+- `PLAYWRIGHT=<playwright module url> node tests/e2e-frame.mjs` (sandbox) and `... node tests/e2e-ui.mjs --net` (whole page, GitHub import). Playwright lives in `~/OneDrive/Desktop/Chegga/web/node_modules/playwright`. Run browser suites with few workers: the PC has 8 GB of RAM.
+- Manual: `py -m http.server 4173` and open http://localhost:4173.
 
 ## Never Read / Noise Zones
 No vendored game files, game archives, ROMs, or downloaded content belong in this repo. Ignore `.DS_Store`, `__pycache__/`, and local screenshots.
 
 ## Session Handoff (Last Worked On · Current State · Next Up)
-- 2026-10-22: Expanded the link-only catalog to 2,285 entries (2,279 imported metadata records + 6 starter links) from SubmitGame/awesome-decomp-games (CC0 catalog data). Access categories: 12 instant browser demos, 7 explicitly requiring user files, 2,266 source/project pages; ambiguous entries stay in source pages. Added access-category filters and console/platform filtering; assets/ROMs remain excluded. Verified IDs/schema and local HTTP smoke test.
-- 2026-10-22: Repository made public and GitHub Pages enabled from `main` root at `https://mbottega16.github.io/Zylith/` (user authorized public hosting). Automatic Pages build is pending verification. The 60-minute Vercel preview is superseded. Local submissions remain browser-only.
+- 2026-10-24: Rebuilt around playable games. Added Add-a-game (GitHub link, zip, HTML file, folder) with a static scanner, a sandboxed test run, and local storage. Replaced the 2,285-row link index with a 74-row checked catalog (9 reverse-engineered). Removed favorites, the "bring your game files" tab, and the source-project tab. The old index is at commit 743a7ad.
+- Next: grow the reverse-engineered shelf. Only a few browser-playable ones exist; add more by hand through `tools/reverse-include.txt`. Consider a worker thread for the scanner on very large packages.

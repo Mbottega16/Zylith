@@ -1,0 +1,6 @@
+# Reverse-engineered / re-implemented games checked by hand: playable in a browser with no game files from the player.
+# One "owner/repo" per line. Harvested rows from the reverse search are dropped unless listed here.
+tsherif/space-shooter.c
+yancharkin/spelunkyclassichd
+1j01/pipes
+cloudflare/doom-wasm

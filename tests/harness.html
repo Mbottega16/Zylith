@@ -1,0 +1,16 @@
+<!doctype html>
+<meta charset="utf-8"><title>Zylith lab harness</title>
+<div id="host" style="width:480px;height:320px"></div>
+<script src="../lab/scan.js"></script><script src="../lab/zip.js"></script><script src="../lab/pack.js"></script><script src="../lab/frame.js"></script>
+<script>
+// Test helper: run a package (object of path -> string|number[]) and resolve with the final probe and judgement.
+window.runPackage = (obj, ms = 4500) => new Promise(resolve => {
+  const files = new Map(Object.entries(obj).map(([k, v]) => [k, typeof v === 'string' ? new TextEncoder().encode(v) : new Uint8Array(v)]));
+  const scan = ZylithScan.scan(files);
+  const host = document.getElementById('host'); host.textContent = '';
+  let last = null, navigated = false;
+  const m = ZylithFrame.mount(host, { files, entry: scan.entry }, { onProbe: p => { last = p; }, onNavigated: () => { navigated = true; }, onFatal: e => resolve({ fatal: e }) });
+  setTimeout(() => m.poke(), 1200);
+  setTimeout(() => { const p = last || {}; resolve({ scan: { verdict: scan.verdict, entry: scan.entry }, probe: p, judged: last && ZylithFrame.judge(last), navigated, title: (() => { try { return null; } catch (e) { return null; } })() }); m.destroy(); }, ms);
+});
+</script>
