@@ -1,0 +1,6 @@
+# Zylith — keep AI search out of caches and local files
+.git/
+.DS_Store
+**/__pycache__/
+node_modules/
+*.zip

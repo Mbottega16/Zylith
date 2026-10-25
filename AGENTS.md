@@ -1,28 +1,78 @@
-# Zylith — repo instructions
+# Zylith — rules & map (read this first)
 
-## Purpose
-A browser hub for reverse-engineered, re-implemented, and open-source games that run in a browser tab, plus a safe way to add your own. Click a game and play. Nothing in the catalog may need a game the player owns.
+A browser hub where you click a game and play it, plus a safe way to add your own.
 
-## Architecture
-Vanilla HTML/CSS/JavaScript. No build system or runtime dependencies. `games.js` is the catalog (about 70 rows, all checked in a browser). `app.js` owns browsing and the game dialog. `lab/` owns adding games: `scan.js` (static scanner), `zip.js`, `pack.js` (GitHub, zip, folder), `frame.js` (sandbox iframe and probe), `store.js` (IndexedDB), `lab-ui.js` (player and Add dialogs). `tools/` builds the catalog. `tests/` holds the scanner unit tests and two Playwright suites.
+**History:** [`HISTORY.md`](HISTORY.md), newest first — read it when a task touches past
+work. **Business side:** the my-brain vault, `projects/zylith/context.md`.
 
-## Rules
-- Nothing in the catalog may require owning the game. Drop pages that ask for ROMs, ISOs, or game files. Do not list unofficial ports of commercial games.
-- Do not add ROMs, binaries, extracted assets, or scraped game bodies to the repo. Catalog rows are links.
-- Added games run only inside the sandbox iframe (`sandbox="allow-scripts allow-pointer-lock"`, no `allow-same-origin`) with the CSP from `lab/frame.js`. Never loosen the sandbox flags or the CSP without re-running `tests/e2e-frame.mjs`.
-- Added games stay in the player's browser (IndexedDB). There is no server and no sharing.
-- Favorites were removed on purpose (owner's call, 2026-10-24). Do not add them back.
-- Keep the app dependency-free unless there is a clear reason to add a package.
-- Write files with LF or CRLF consistently; this repo's checked-out files are CRLF on Windows.
+## What this is
+- **What:** a hub for reverse-engineered, re-implemented and open-source games that run in
+  a browser tab. Two kinds of games: a checked **catalog** (each one loaded in a real
+  browser and seen to act like a game; links to the creators' own pages) and **your
+  games** (paste a GitHub link or drop a zip, HTML file or folder; Zylith scans it, runs
+  it in a locked sandbox, and says whether it is really a game).
+- **For:** anyone who wants to play browser games without owning anything.
+- **Platform:** a static site — vanilla HTML/CSS/JavaScript, no build, no dependencies.
+  Live on GitHub Pages at <https://mbottega16.github.io/Zylith/>; **a push to `main`
+  updates the live site.**
+- **What "done" looks like:** click a game, it plays. Nothing in the catalog needs a game
+  the player owns, and nothing unsafe gets through the Add-a-game checks.
+- **Direction:** grow the reverse-engineered shelf by hand; keep the scanner and sandbox
+  strict.
+- **Full design:** `README.md` (how the scan, sandbox and verdicts work).
 
-## Verification
-- `node tests/scan.test.mjs` (scanner, no browser).
-- `PLAYWRIGHT=<playwright module url> node tests/e2e-frame.mjs` (sandbox) and `... node tests/e2e-ui.mjs --net` (whole page, GitHub import). Playwright lives in `~/OneDrive/Desktop/Chegga/web/node_modules/playwright`. Run browser suites with few workers: the PC has 8 GB of RAM.
-- Manual: `py -m http.server 4173` and open http://localhost:4173.
+## Settled decisions (don't re-argue)
+- **Nothing in the catalog may require owning the game.** Drop pages that ask for ROMs,
+  ISOs or game files. Do not list unofficial ports of commercial games.
+- **Catalog rows are links.** No ROMs, binaries, extracted assets or scraped game bodies
+  in the repo.
+- **Added games run only inside the sandbox iframe** (`sandbox="allow-scripts
+  allow-pointer-lock"`, no `allow-same-origin`) with the CSP from `lab/frame.js`.
+- **Added games stay in the player's browser** (IndexedDB). No server, no sharing.
+- **Favorites were removed on purpose** (owner's call, 2026-10-24). Do not add them back.
+- **Dependency-free** unless there is a clear reason to add a package.
 
-## Never Read / Noise Zones
-No vendored game files, game archives, ROMs, or downloaded content belong in this repo. Ignore `.DS_Store`, `__pycache__/`, and local screenshots.
+## How it's built
+| | |
+|---|---|
+| `games.js` | The catalog (about 70 rows, all checked in a browser) |
+| `app.js` | Browsing and the game dialog |
+| `lab/` | Adding games: `scan.js` (static scanner), `zip.js`, `pack.js` (GitHub, zip, folder), `frame.js` (sandbox iframe and probe), `store.js` (IndexedDB), `lab-ui.js` (player and Add dialogs) |
+| `tools/` | Builds the catalog; `tools/reverse-include.txt` is the hand list for the reverse-engineered shelf |
+| `tests/` | Scanner unit tests and two Playwright suites |
+
+## Commands & Verification
+- `node tests/scan.test.mjs` — the scanner, no browser.
+- `PLAYWRIGHT=<playwright module url> node tests/e2e-frame.mjs` (sandbox) and
+  `... node tests/e2e-ui.mjs --net` (whole page, GitHub import). Playwright: PC
+  `~/OneDrive/Desktop/Chegga/web/node_modules/playwright`; Mac
+  `~/Desktop/my-brain/projects/elo-bot-ascent/app/node_modules/playwright`. Run browser
+  suites with few workers: the PC has 8 GB of RAM.
+- Manual: `run.bat` / `run.command`, or `py -m http.server 4173` (Mac:
+  `python3 -m http.server 4173`) and open http://localhost:4173 — over `http://`, not
+  `file://`.
+
+## Never Read / Noise Zones (Do Not Scan)
+No vendored game files, game archives, ROMs or downloaded content belong in this repo.
+Ignore `.DS_Store`, `__pycache__/`, and local screenshots.
+
+## Rules & Gotchas
+- **Never loosen the sandbox flags or the CSP** without re-running `tests/e2e-frame.mjs`.
+- Write files with LF or CRLF consistently; this repo's checked-out files are CRLF on
+  Windows.
+- The pre-rebuild 2,285-row link index is at commit `743a7ad`, if it is ever needed.
 
 ## Session Handoff (Last Worked On · Current State · Next Up)
-- 2026-10-24: Rebuilt around playable games. Added Add-a-game (GitHub link, zip, HTML file, folder) with a static scanner, a sandboxed test run, and local storage. Replaced the 2,285-row link index with a 74-row checked catalog (9 reverse-engineered). Removed favorites, the "bring your game files" tab, and the source-project tab. The old index is at commit 743a7ad.
-- Next: grow the reverse-engineered shelf. Only a few browser-playable ones exist; add more by hand through `tools/reverse-include.txt`. Consider a worker thread for the scanner on very large packages.
+
+*Overwrite this at the end of every session; move the previous handoff into `HISTORY.md` first.*
+
+- **Last Worked On (2026-10-24):** rebuilt around playable games — Add-a-game (GitHub
+  link, zip, HTML file, folder) with a static scanner, a sandboxed test run and local
+  storage; a 74-row checked catalog (9 reverse-engineered) replaced the 2,285-row link
+  index. Favorites, the "bring your game files" tab and the source-project tab were
+  removed. Later the same day the docs were restructured (no code change).
+- **Current State:** live on GitHub Pages from `main` (`54b0188`).
+- **Next Up:**
+  1. Grow the reverse-engineered shelf. Only a few browser-playable ones exist; add more
+     by hand through `tools/reverse-include.txt`.
+  2. Consider a worker thread for the scanner on very large packages.
