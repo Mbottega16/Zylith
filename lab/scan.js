@@ -64,7 +64,7 @@
     { id: 'beacon', sev: 'medium', re: /navigator\.sendBeacon\s*\(/, msg: 'Sends data in the background with sendBeacon.' },
     { id: 'websocket', sev: 'medium', re: /new\s+WebSocket\s*\(\s*['"`]wss?:\/\/(?!localhost|127\.0\.0\.1)/i, msg: 'Opens a WebSocket to an outside server (online play or data exfiltration).' },
     { id: 'hidden-iframe', sev: 'high', markup: true, re: /<iframe[^>]+(?:width\s*=\s*["']?0|height\s*=\s*["']?0|display\s*:\s*none|visibility\s*:\s*hidden)/i, msg: 'Hidden frame. Hidden frames load tracking or attack pages.' },
-    { id: 'hidden-iframe-js', sev: 'high', re: /createElement\(\s*['"]iframe['"]\s*\)[\s\S]{0,240}(?:display\s*=\s*['"]none|visibility\s*=\s*['"]hidden|\.width\s*=\s*['"]?0|\.height\s*=\s*['"]?0)/,
+    { id: 'hidden-iframe-js', sev: 'high', re: /createElement\(\s*['"]iframe['"]\s*\)[\s\S]{0,240}(?:display\s*=\s*['"]none|visibility\s*=\s*['"]hidden|\.width\s*=\s*['"]?0\b|\.height\s*=\s*['"]?0\b)/,
       msg: 'Creates a hidden frame.' },
     { id: 'external-iframe', sev: 'medium', markup: true, re: /<iframe[^>]+src\s*=\s*["']https?:\/\//i, msg: 'Embeds an outside web page.' },
     { id: 'meta-csp-strip', sev: 'low', markup: true, re: /<meta[^>]+Content-Security-Policy/i, msg: 'Sets its own security policy (the sandbox policy still applies).' },
@@ -197,7 +197,7 @@
         for (const w of text.slice(0, 2e6).match(SIGNALS.state) || []) stateSeen.add(w.toLowerCase());
       }
       // external resources
-      const urlRe = /<(?:script|img|iframe|source|audio|video|embed|link)[^>]*?(?:src|href)\s*=\s*["'](https?:\/\/[^"']+)["']|(?:fetch|open)\s*\(\s*(?:['"]\w+['"]\s*,\s*)?["'`](https?:\/\/[^"'`]+)["'`]|new\s+(?:Image|Audio|Worker|EventSource)\s*\(\s*["'`](https?:\/\/[^"'`]+)/gi;
+      const urlRe = /<(?:script|img|iframe|source|audio|video|embed|link)\b[^>]*?\b(?:src|href)\s*=\s*["'](https?:\/\/[^"']+)["']|(?:fetch|open)\s*\(\s*(?:['"]\w+['"]\s*,\s*)?["'`](https?:\/\/[^"'`]+)["'`]|new\s+(?:Image|Audio|Worker|EventSource)\s*\(\s*["'`](https?:\/\/[^"'`]+)/gi;
       let um;
       while ((um = urlRe.exec(text))) {
         const u = um[1] || um[2] || um[3], h = hostOf(u);

