@@ -66,13 +66,16 @@ Ignore `.DS_Store`, `__pycache__/`, and local screenshots.
 
 *Overwrite this at the end of every session; move the previous handoff into `HISTORY.md` first.*
 
-- **Last Worked On (2026-10-24):** rebuilt around playable games — Add-a-game (GitHub
-  link, zip, HTML file, folder) with a static scanner, a sandboxed test run and local
-  storage; a 74-row checked catalog (9 reverse-engineered) replaced the 2,285-row link
-  index. Favorites, the "bring your game files" tab and the source-project tab were
-  removed. Later the same day the docs were restructured (no code change).
-- **Current State:** live on GitHub Pages from `main` (`54b0188`).
+- **Last Worked On (2026-10-30):** caught up `HISTORY.md` with the 2026-10-24 rebuild
+  (`54b0188`) in the four-line format, and refreshed this handoff. Since the rebuild,
+  three commits on this branch: the docs restructure (`769557f`), a test of every scanner
+  rule id plus an external-host regex fix (`d03ebc0`), and unit tests for the frame
+  verdict judge (`984e087`).
+- **Current State:** the last recorded live site is `main` at `54b0188`. `769557f`,
+  `d03ebc0` and `984e087` are not confirmed live. `node tests/scan.test.mjs` passes 65/65.
+  The browser suites (`tests/e2e-frame.mjs`, `tests/e2e-ui.mjs --net`) were not run.
 - **Next Up:**
   1. Grow the reverse-engineered shelf. Only a few browser-playable ones exist; add more
      by hand through `tools/reverse-include.txt`.
   2. Consider a worker thread for the scanner on very large packages.
+  3. Run both browser suites on the current tree before the next push.

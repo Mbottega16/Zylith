@@ -33,10 +33,11 @@ This repo is public, so private planning notes stay in the owner's vault
 
 ## 2026-10-24 — rebuilt around playable games
 
-*(The old `CLAUDE.md` handoff, word for word.)*
-
-- 2026-10-24: Rebuilt around playable games. Added Add-a-game (GitHub link, zip, HTML file, folder) with a static scanner, a sandboxed test run, and local storage. Replaced the 2,285-row link index with a 74-row checked catalog (9 reverse-engineered). Removed favorites, the "bring your game files" tab, and the source-project tab. The old index is at commit 743a7ad.
-- Next: grow the reverse-engineered shelf. Only a few browser-playable ones exist; add more by hand through `tools/reverse-include.txt`. Consider a worker thread for the scanner on very large packages.
+*Mac · Claude · commits `54b0188`*
+- **Changed:** Added Add-a-game (GitHub link, zip, HTML file, folder). A static scanner blocks miners, exfiltration, shell commands and disguised programs; a sandboxed run (opaque-origin iframe, strict CSP) checks that the game draws, loops and reads input; games stay in IndexedDB. The 2,285-row link index became a 74-row checked catalog (9 reverse-engineered). Favorites, the "bring your game files" tab and the source-project tab were removed.
+- **Why:** Click a game and it plays, with nothing in the catalog needing a game the player owns and nothing unsafe getting through Add-a-game. Favorites removal was the owner's call. The old index is kept at `743a7ad`.
+- **Verified:** The commit message states every catalog row was loaded in a real browser; not re-checked for this entry. On the current tree, `node tests/scan.test.mjs` passes 65/65 (run at `984e087`). Not checked: `tests/e2e-frame.mjs` and `tests/e2e-ui.mjs --net`.
+- **Left open:** Grow the reverse-engineered shelf by hand through `tools/reverse-include.txt`. Consider a worker thread for the scanner on very large packages.
 
 ## Before 2026-10-24
 
