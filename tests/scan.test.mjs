@@ -3,7 +3,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { createRequire } from 'node:module';
 import { readFileSync } from 'node:fs';
-const { scan, LIMITS } = createRequire(import.meta.url)('../lab/scan.js');
+const { scan, scanAsync, scanInWorker, usesWorker, WORKER_BYTES, LIMITS } = createRequire(import.meta.url)('../lab/scan.js');
 
 const enc = s => new TextEncoder().encode(s);
 const pkg = obj => new Map(Object.entries(obj).map(([k, v]) => [k, typeof v === 'string' ? enc(v) : v]));
@@ -206,4 +206,24 @@ for (const [tier, snippet] of Object.entries(NEAR_MISS)) {
 
 test('clean game raises no findings', () => {
   assert.deepEqual(scan(pkg({ 'index.html': CANVAS_GAME })).findings, []);
+});
+
+// ---- worker path: big packages go to a worker, with the same result ----------
+test('large package goes to the worker and gives the same result as the inline scan', async () => {
+  // Two text files of about half the threshold each, so the total is over WORKER_BYTES.
+  const filler = 'var pad = 1;\n'.repeat(Math.ceil(WORKER_BYTES / 2 / 13) + 1);
+  const big = pkg({ 'index.html': CANVAS_GAME, 'a.js': filler, 'b.js': filler, 'x.js': 'eval(atob("YWxlcnQoMSk="))' });
+  assert.ok(usesWorker(big), 'expected the worker path');
+  const inline = scan(big);
+  assert.ok(ids(inline).includes('eval-decode'));
+  assert.deepEqual(await scanInWorker(big), inline);
+  assert.deepEqual(await scanAsync(big), inline);
+});
+
+test('small package gives the same result on both paths', async () => {
+  const small = pkg({ 'index.html': CANVAS_GAME, 'x.js': 'eval(atob("YWxlcnQoMSk="))' });
+  assert.equal(usesWorker(small), false);
+  const inline = scan(small);
+  assert.deepEqual(await scanAsync(small), inline);
+  assert.deepEqual(await scanInWorker(small), inline);
 });

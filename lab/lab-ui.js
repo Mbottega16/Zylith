@@ -68,7 +68,7 @@
     let row;
     try { row = await Store.get(meta.id); } catch (e) { msg.innerHTML = 'Could not read this game from storage.'; return; }
     if (!row) { msg.innerHTML = 'This game is no longer stored in this browser.'; return; }
-    const scan = S.scan(row.files);
+    const scan = await S.scanAsync(row.files);
     if (scan.verdict === 'block' || scan.verdict === 'reject') { msg.innerHTML = `<b>Zylith will not run this game.</b><span>${esc(scan.headline)}</span>`; return; }
     msg.remove();
     const boot = () => {
@@ -105,13 +105,15 @@
     try {
       const loaded = await loader(t => status(t));
       status('');
-      analyse(loaded);
+      await analyse(loaded);
     } catch (e) {
       status(e.message || String(e), true);
     }
   }
 
-  function analyse(loaded) {
+  let analyseRun = 0;   // a newer load wins; an older scan that finishes late is dropped
+  async function analyse(loaded) {
+    const run = ++analyseRun;
     const { files } = loaded;
     const info = loaded.info || {};
     if (!files.size) {
@@ -119,7 +121,8 @@
       renderReport();
       return;
     }
-    const scan = S.scan(files);
+    const scan = await S.scanAsync(files);
+    if (run !== analyseRun) return;
     const first = [...files.keys()].find(k => /\.html?$/i.test(k));
     const guess = info.title || (loaded.name || '').replace(/\.(zip|html?)$/i, '') || (first ? first.replace(/\.html?$/i, '') : 'Untitled game');
     cur = { files, info, scan, title: guess, judged: null, probe: null, done: false, started: false, source: info.repoUrl ? 'github' : 'upload' };

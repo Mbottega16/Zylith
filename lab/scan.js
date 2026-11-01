@@ -242,7 +242,48 @@
       externalHosts: [...externalHosts].map(([host, v]) => ({ host, ...v })) };
   }
 
-  const api = { scan, pickEntry, ext, LIMITS, CDN_HOSTS, TEXT_EXT, ASSET_EXT };
+  // ---- off the main thread ------------------------------------------------
+  // A package over WORKER_BYTES is scanned in lab/scan-worker.js so a big upload does not freeze the page.
+  // The worker returns the same object scan() does.
+  const WORKER_BYTES = 8 * 1024 * 1024;
+  const SELF_URL = typeof document !== 'undefined' && document.currentScript ? document.currentScript.src : '';
+  const inNode = typeof module !== 'undefined' && !!module.exports;
+
+  /** True when scanAsync would hand this package to a worker. */
+  function usesWorker(files, opts) {
+    let total = 0;
+    for (const b of files.values()) total += b.length;
+    const limit = opts && opts.workerBytes !== undefined ? opts.workerBytes : WORKER_BYTES;
+    return total > limit;
+  }
+
+  /** Runs scan() in a worker and rejects if the worker fails. */
+  function scanInWorker(files, opts) {
+    opts = { entry: (opts || {}).entry };
+    return new Promise((resolve, reject) => {
+      if (inNode) {
+        const { Worker } = require('worker_threads');
+        const w = new Worker(require('path').join(__dirname, 'scan-worker.js'), { workerData: { files: [...files], opts } });
+        w.once('message', resolve);
+        w.once('error', reject);
+        w.once('exit', code => reject(new Error('scan worker exited with code ' + code)));
+      } else {
+        const w = new Worker(new URL('scan-worker.js', SELF_URL));
+        w.onmessage = e => { w.terminate(); resolve(e.data); };
+        w.onerror = e => { w.terminate(); reject(new Error(e.message || 'scan worker failed')); };
+        w.postMessage({ files: [...files], opts });
+      }
+    });
+  }
+
+  /** Same result as scan(). A big package runs in a worker; if the worker fails, the scan runs here instead. */
+  async function scanAsync(files, opts) {
+    opts = opts || {};
+    if (!usesWorker(files, opts)) return scan(files, opts);
+    try { return await scanInWorker(files, opts); } catch (e) { return scan(files, opts); }
+  }
+
+  const api = { scan, scanAsync, scanInWorker, usesWorker, WORKER_BYTES, pickEntry, ext, LIMITS, CDN_HOSTS, TEXT_EXT, ASSET_EXT };
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
   else root.ZylithScan = api;
 })(typeof window !== 'undefined' ? window : globalThis);

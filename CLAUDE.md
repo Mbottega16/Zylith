@@ -71,17 +71,17 @@ Ignore `.DS_Store`, `__pycache__/`, and local screenshots.
 
 *Overwrite this at the end of every session; move the previous handoff into `HISTORY.md` first.*
 
-- **Last Worked On (2026-10-31):** made the Commands section match reality. It now lists
-  `node --test tests/` as the offline command (scanner and frame judge, no browser), marks
-  the two Playwright suites as the browser-only tests, and keeps their run lines as they
-  were. The test headers already said `node --test tests/`, so they were not changed.
+- **Last Worked On (2026-10-31):** the scanner runs in a worker for packages over 8 MB.
+  `scanAsync` in `lab/scan.js` picks the worker (`lab/scan-worker.js`) or the inline scan;
+  `lab/lab-ui.js` awaits it. Two new tests in `tests/scan.test.mjs` check that large and
+  small inputs give identical results.
 - **Current State:** the last recorded live site is `main` at `54b0188`. `769557f`,
   `d03ebc0` and `984e087` are not confirmed live. Offline run on this tree:
-  `node --test tests/` → 74 pass, 0 fail (`scan.test.mjs` 65, `frame-judge.test.mjs` 9).
-  `node tests/scan.test.mjs` → 65 pass, 0 fail. The browser suites (`tests/e2e-frame.mjs`,
-  `tests/e2e-ui.mjs --net`) were not run.
+  `node --test tests/` → 76 pass, 0 fail (`scan.test.mjs` 67, `frame-judge.test.mjs` 9).
+  `node tests/scan.test.mjs` → 67 pass, 0 fail. The browser suites (`tests/e2e-frame.mjs`,
+  `tests/e2e-ui.mjs --net`) were not run, and the browser path of the worker is unchecked.
 - **Next Up:**
   1. Grow the reverse-engineered shelf. Only a few browser-playable ones exist; add more
      by hand through `tools/reverse-include.txt`.
-  2. Consider a worker thread for the scanner on very large packages.
-  3. Run both browser suites on the current tree before the next push.
+  2. Check the Web Worker scan path in a real browser, then run both browser suites on the
+     current tree before the next push.

@@ -20,6 +20,14 @@ This repo is public, so private planning notes stay in the owner's vault
 
 ---
 
+## 2026-10-31 — CLAUDE.md commands section; scanner worker for big packages
+
+*Mac · Claude · commits on `crew/jmvx36bai5c25`*
+- **Changed:** `CLAUDE.md` Commands now list `node --test tests/` as the offline run and mark the two Playwright suites as browser-only. The scanner gets `scanAsync`: a package over 8 MB goes to `lab/scan-worker.js` (a Web Worker in the page, a `worker_threads` Worker in Node). The result is the same object `scan()` returns. `lab-ui.js` awaits it.
+- **Why:** big uploads froze the page during the scan; the handoff's Next Up item 2 asked for it. Worker failure falls back to the inline scan.
+- **Verified:** `node --test tests/` → 76 pass, 0 fail (two new tests: large package via the worker equals the inline scan; small package equals on both paths). Browser check not run: headless Chromium cannot launch in the sandbox.
+- **Left open:** `tests/e2e-ui.mjs --net` not run since `lab-ui.js` became async.
+
 ## 2026-10-30 — caught up HISTORY, refreshed handoff
 
 *Mac · Claude · docs only, no code touched · commits `6afe21b`*
