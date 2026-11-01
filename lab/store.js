@@ -46,12 +46,14 @@
   }
   const saveKey = id => 'zylith-save-' + id;
   function loadSave(id) { try { return JSON.parse(localStorage.getItem(saveKey(id)) || '{}'); } catch (e) { return {}; } }
+  /** Returns true when the save was kept, false when it was too big or the browser refused it. */
   function writeSave(id, data) {
     try {
       const json = JSON.stringify(data);
-      if (json.length > 2e6) return;   // a game may not fill this site's storage
+      if (json.length > 2e6) return false;   // a game may not fill this site's storage
       localStorage.setItem(saveKey(id), json);
-    } catch (e) { /* quota */ }
+      return true;
+    } catch (e) { /* quota */ return false; }
   }
 
   root.ZylithStore = { put, get, list, remove, loadSave, writeSave };

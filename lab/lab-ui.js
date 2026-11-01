@@ -76,7 +76,7 @@
       $('#playerStage').textContent = '';
       playing = Frame.mount($('#playerStage'), { files: row.files, entry: scan.entry }, {
         saves: Store.loadSave(meta.id),
-        onSave: data => Store.writeSave(meta.id, data),
+        onSave: data => { if (!Store.writeSave(meta.id, data)) hooks.toast('This save is too big to keep in this browser.'); },
         onNavigated: () => {
           const m = playerMessage('<b>The game tried to leave or reload itself.</b><span>Zylith stopped it.</span><button class="button button-primary">Restart</button>');
           m.querySelector('button').onclick = boot;
