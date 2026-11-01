@@ -24,6 +24,25 @@ yancharkin/spelunkyclassichd
 3. **Hand-check and list it.** A person confirms the game is a reverse-engineered or re-implemented game that runs with no files from the player, and not an unofficial port of a commercial game. Then the repo goes on `tools/reverse-include.txt`. The file is the only record of that judgment.
 4. **Rebuild.** `node tools/build-catalog.mjs harvest.json,... verified.jsonl,... tools/exclude.txt` writes `games.js`.
 
+## Add one game: step by step
+
+Run these from the repo root. Steps 2 and 3 need tools that are not in the repo: the `gh` CLI and Playwright (see `README.md`).
+
+1. **Check the rules.** The game runs in a browser with no ROM, ISO, disc or purchased copy from the player. It is not an unofficial port of a commercial game. It is not in `tools/exclude.txt`.
+2. **Put the repo in a harvest file.** Write a JSON list with the repo, e.g. `repos.json` containing `["owner/repo"]`, then run `node tools/reverse-harvest.mjs repos.json harvest.json`. The build skips any repo that is not in a harvest file, so a line in the hand list alone does nothing.
+3. **Check it in a browser.** Run `PLAYWRIGHT=<playwright module url> node tools/verify.mjs harvest.json verified.jsonl`. Open `verified.jsonl` and find the repo's line. It must say `"ok":true`. If it says `"ok":false`, stop: the game does not go on the shelf. To re-check a repo, delete its line first, because `verify.mjs` skips repos already in the file.
+4. **Look at the page yourself.** Open the game and confirm it asks for no game files.
+5. **Add it to the hand list.** Add `owner/repo` on its own line in `tools/reverse-include.txt`. Case does not matter.
+6. **Rebuild the catalog.** Run `node tools/build-catalog.mjs harvest.json verified.jsonl tools/exclude.txt`. It prints `playable N (embed M), reverse-engineered R`. R should be one higher than before.
+7. **Update the counts.** The catalog test fails until both are changed:
+   - `EXPECTED_ROWS` in `tests/catalog.test.mjs` (currently `74`): raise it by the number of new rows.
+   - The `games.js` line in `CLAUDE.md`: the total row count, the platform counts and the access counts.
+8. **Run the scanner check.** Run `node tests/scan.test.mjs`. It must end with `ℹ fail 0` and `ℹ pass 67`. This is the scanner suite, 67 tests in total.
+9. **Run the offline tests.** Run `node --test tests/`. It must end with `ℹ fail 0` and `ℹ pass 85`. One of its tests, "scanner's 18 self-checks all pass", re-runs the 18 named scanner checks at the top of `tests/scan.test.mjs`.
+10. **Commit together.** Commit `games.js`, `tools/reverse-include.txt`, `CLAUDE.md`, `tests/catalog.test.mjs` and any harvest or verify output you keep, in one commit. Nothing is live until the owner pushes `main`.
+
+Rows from `tools/curated.mjs` skip step 5. Their tag is set in code (the `REVERSE` set in that file), not in the hand list.
+
 ## What `build-catalog.mjs` checks for each reverse row
 
 A row is written to `games.js` only if all of these hold, checked in this order:
