@@ -35,14 +35,14 @@ work. **Business side:** the my-brain vault, `projects/zylith/context.md`.
 ## How it's built
 | | |
 |---|---|
-| `games.js` | The catalog (about 70 rows, all checked in a browser) |
+| `games.js` | The catalog (74 rows: 65 open-source web games, 9 reverse-engineered; 74 instant, all checked in a browser) |
 | `app.js` | Browsing and the game dialog |
 | `lab/` | Adding games: `scan.js` (static scanner), `zip.js`, `pack.js` (GitHub, zip, folder), `frame.js` (sandbox iframe and probe), `store.js` (IndexedDB), `lab-ui.js` (player and Add dialogs) |
 | `tools/` | Builds the catalog; `tools/reverse-include.txt` is the hand list for the reverse-engineered shelf |
 | `tests/` | Offline unit tests (scanner, frame judge) and two Playwright suites |
 
 ## Commands & Verification
-- `node --test tests/` — **offline, no browser:** `scan.test.mjs` (scanner, 65 tests) and
+- `node --test tests/` — **offline, no browser:** `scan.test.mjs` (scanner, 67 tests) and
   `frame-judge.test.mjs` (frame verdict judge, 9 tests). Run from the repo root; it must
   end with `fail 0`.
 - `node tests/scan.test.mjs` — the scanner alone, no browser (the crew's gate).
@@ -76,7 +76,7 @@ Ignore `.DS_Store`, `__pycache__/`, and local screenshots.
   in `app.js`). It confirms, drops the row from `userGames`, calls `persist()` and re-renders.
 - **Current State:** the last recorded live site is `main` at `54b0188`. `769557f`,
   `d03ebc0` and `984e087` are not confirmed live. Work branch `crew/jmvyaxjb1673b` adds
-  `56e7b75` (remove hosted links). Offline run on this tree: `node --test tests/` → 81 pass,
+  `56e7b75` (remove hosted links). Offline run on this tree: `node --test tests/` → 85 pass,
   0 fail; `node tests/scan.test.mjs` → 67 pass, 0 fail. No browser check has run on the
   remove path; the browser suites (`tests/e2e-frame.mjs`, `tests/e2e-ui.mjs --net`) are
   also unrun, and the Web Worker scan path is unchecked in a browser.

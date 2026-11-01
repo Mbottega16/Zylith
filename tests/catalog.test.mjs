@@ -1,6 +1,7 @@
 // Run: node --test tests/
 // Guards the checked catalog (games.js): every row has a verdict, a unique id and a well-formed https game path.
-// Also checks that the scanner's 18 self-checks (the named tests at the top of scan.test.mjs) all pass.
+// Also checks that the platform and access-type counts match the sentence CLAUDE.md states, and that the scanner's
+// 18 self-checks (the named tests at the top of scan.test.mjs) all pass.
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
@@ -9,7 +10,10 @@ import { execFileSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 
 const CATALOG = fileURLToPath(new URL('../games.js', import.meta.url));
+const CLAUDE_MD = fileURLToPath(new URL('../CLAUDE.md', import.meta.url));
 const SCANNER_TESTS = fileURLToPath(new URL('./scan.test.mjs', import.meta.url));
+// How CLAUDE.md spells each platform in its games.js row.
+const PLATFORM_WORDS = { 'Open-source web game': 'open-source web games', 'Reverse-engineered': 'reverse-engineered' };
 const EXPECTED_ROWS = 74;   // bump on purpose when the shelf grows
 const SCANNER_SELF_CHECKS = [
   'plain canvas game passes',
@@ -64,6 +68,26 @@ function rowProblems(rows) {
 
 test(`catalog has ${EXPECTED_ROWS} rows`, () => {
   assert.equal(loadRows().length, EXPECTED_ROWS);
+});
+
+const countBy = (rows, key) => {
+  const counts = new Map();
+  for (const row of rows) counts.set(row[key], (counts.get(row[key]) ?? 0) + 1);
+  return counts;
+};
+
+test('platform and access-type counts match the games.js line in CLAUDE.md', () => {
+  const rows = loadRows();
+  const line = readFileSync(CLAUDE_MD, 'utf8').split('\n').find(l => l.includes('`games.js`'));
+  assert.ok(line, 'CLAUDE.md has a games.js row');
+  assert.match(line, new RegExp(`\\(${rows.length} rows:`), `docs should say ${rows.length} rows`);
+  for (const [platform, n] of countBy(rows, 'platform')) {
+    assert.ok(PLATFORM_WORDS[platform], `add a doc wording for platform "${platform}"`);
+    assert.match(line, new RegExp(`\\b${n} ${PLATFORM_WORDS[platform]}\\b`), `docs should say ${n} ${PLATFORM_WORDS[platform]}`);
+  }
+  for (const [access, n] of countBy(rows, 'accessType')) {
+    assert.match(line, new RegExp(`\\b${n} ${access}\\b`), `docs should say ${n} ${access}`);
+  }
 });
 
 test('every catalog row has a verdict, a unique id and a game path', () => {
