@@ -94,7 +94,7 @@ The judge also counts blocked attempts: requests, clipboard calls, camera or mic
 | Outcome (heading shown) | When | Can add? |
 |---|---|---|
 | **Blocked: dangerous content** | Scan verdict `block` | No |
-| **Not a runnable web game** | Scan verdict `reject` (no page, or source that needs a build) | No |
+| **Not a runnable web game** | Scan verdict `reject`: no HTML page, source that needs a build, native source (C, C++, Rust, and so on), or an empty package | No |
 | **Unsafe: it tried to escape its box** | Sandbox result `escape` | No |
 | **It does not behave like a game** | Sandbox result `notgame` | No |
 | **Caution: check the notes first** | Scan verdict `review`, or sandbox result `maybe`, or any blocked attempt | Yes, after the box "I read the notes and want to keep it" is ticked |
@@ -103,6 +103,64 @@ The judge also counts blocked attempts: requests, clipboard calls, camera or mic
 While the test runs, the heading is *Testing in the sandbox...* and the add button is off.
 
 The game runs in the locked box in every case. A *Caution* game does not run outside it.
+
+## Verdict reference
+
+Every verdict string the Add flow can return, with what triggers it and what to do next. The strings are copied from the code, so search for them to find the source.
+
+### Scan verdict (`scan.verdict`, set in `lab/scan.js`)
+
+| Verdict | Trigger | Next step: player | Next step: maintainer |
+|---|---|---|---|
+| `block` | Any critical finding (a program or script file, a path that leaves the package, a crypto miner, a data-theft webhook, a shell command, a "paste into a terminal" trick, a size limit hit) | Cannot add. Nothing runs. Fix or remove the flagged files and add again. | Read the findings list (file and rule). Do not add an override. |
+| `reject` | No entry page, or the package is native source, needs a build, or is empty | Cannot add. If the repo links a hosted page, open it (the dialog shows a button). Otherwise upload the built folder that holds `index.html`. | Same as the player. Native-source projects are not browser games; skip them. |
+| `review` | Points ≥ 4 (or ≥ 8), or the code does not look like a game. Points: high = 5, medium = 3, low = 1 | Test runs. Read the notes, play the preview, then tick "I read the notes and want to keep it" to add. | Treat as a judgment call on the notes. It stays in the locked box. |
+| `pass` | No critical finding, an entry page, points under 4, and a look of a game | Test still runs. Add is enabled once the sandbox test finishes. | None unless the test later fails. |
+
+### Scan headlines (`scan.headline`)
+
+Shown in the report and, on replay, when a saved game is blocked or rejected.
+
+| Headline | Verdict |
+|---|---|
+| `Blocked: contains dangerous content.` | `block` |
+| `Not a runnable web game.` | `reject` (also used when the package has no files) |
+| `High caution: several risky behaviors.` | `review` (points ≥ 8) |
+| `Does not look like a game from its code. Run the sandbox test.` | `review` (no game signals) |
+| `Looks like a game, with some behaviors to check.` | `review` (points ≥ 4) |
+| `Looks like a game. No dangerous code found.` | `pass` |
+
+### Sandbox result (`judged.result`, set in `judge()` in `lab/frame.js`)
+
+| Result | Trigger | Next step: player | Next step: maintainer |
+|---|---|---|---|
+| `escape` | The game tried to leave the page or open a pop-up | Cannot add. The game was stopped and Zylith will not keep it. | Check the probe log. Treat as unsafe. |
+| `game` | All four core checks pass: it loads without a fatal error, draws, runs a loop, and reads input | Can add (unless the scan says `review` or a blocked attempt happened). | None. |
+| `maybe` | It draws, and runs a loop or reads input, but not all four core checks passed | Caution path: read the notes, tick the box, then add. | Check which core check failed. |
+| `notgame` | Anything else | Cannot add. If it really is a game, fix the package (a missing build or missing files) and press "Test again". | Same as the player. |
+
+A blocked attempt (a request, clipboard call, camera or microphone call, or download) makes the outcome at least Caution, even when the sandbox result is `game`.
+
+### Final outcome (report heading, from `decide()` in `lab/lab-ui.js`)
+
+| Heading | Shown when | Can add? | Next step |
+|---|---|---|---|
+| `Testing in the sandbox...` | The test has not finished, or has not started | No | Wait, or play the preview. |
+| `Blocked: dangerous content` | Scan `block` | No | See `block` above. |
+| `Not a runnable web game` | Scan `reject` | No | See `reject` above. |
+| `Unsafe: it tried to escape its box` | Sandbox `escape` | No | See `escape` above. |
+| `It does not behave like a game` | Sandbox `notgame` | No | See `notgame` above. |
+| `Caution: check the notes first` | Scan `review`, sandbox `maybe`, or a blocked attempt | Yes, after the box is ticked | Read the notes, then add or leave it. |
+| `Looks like a game, and it behaves` | None of the above | Yes | Add. |
+
+The step list reads `3 · Sandbox test skipped` when the scan blocks or rejects the package. Its `fail` mark is not a verdict.
+
+### Play-time messages (not verdicts)
+
+These appear when a saved game is opened. They do not change the saved game.
+
+- `Zylith will not run this game.` (`lab/lab-ui.js` `playLocal`): the rescan returned `block` or `reject`.
+- `The game tried to leave or reload itself.` followed by `Zylith stopped it.` and a Restart button: the game navigated away while it ran.
 
 ## Limits
 
