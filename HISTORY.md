@@ -20,6 +20,14 @@ This repo is public, so private planning notes stay in the owner's vault
 
 ---
 
+## 2026-11-01 — players can remove hosted links from their list
+
+*Mac · Claude · commits `56e7b75` on `crew/jmvyaxjb1673b`*
+- **Changed:** a hosted-page row (id starts with `submitted-`) shows a "Remove from my list" button in the game dialog. It asks first, then drops the row from `userGames`, saves and re-renders. Catalog and local games do not show it.
+- **Why:** hosted links could be added but not removed. The button sits beside Delete, which is only for local games.
+- **Verified:** `node tests/scan.test.mjs` → 67 pass, 0 fail. `node --test tests/` → 81 pass, 0 fail. Browser check not run: headless Chromium cannot launch in the sandbox (`bootstrap_check_in` permission denied), so add → remove → reload is untested in a real browser.
+- **Left open:** run the add/remove/reload path in a browser; `tests/e2e-ui.mjs --net` not run.
+
 ## 2026-10-31 — CLAUDE.md commands section; scanner worker for big packages
 
 *Mac · Claude · commits on `crew/jmvx36bai5c25`*

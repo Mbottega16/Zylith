@@ -71,17 +71,18 @@ Ignore `.DS_Store`, `__pycache__/`, and local screenshots.
 
 *Overwrite this at the end of every session; move the previous handoff into `HISTORY.md` first.*
 
-- **Last Worked On (2026-10-31):** the scanner runs in a worker for packages over 8 MB.
-  `scanAsync` in `lab/scan.js` picks the worker (`lab/scan-worker.js`) or the inline scan;
-  `lab/lab-ui.js` awaits it. Two new tests in `tests/scan.test.mjs` check that large and
-  small inputs give identical results.
+- **Last Worked On (2026-11-01):** players can remove hosted links. In the game dialog,
+  a `submitted-` row shows "Remove from my list" (`#removeHosted` in `index.html`, handler
+  in `app.js`). It confirms, drops the row from `userGames`, calls `persist()` and re-renders.
 - **Current State:** the last recorded live site is `main` at `54b0188`. `769557f`,
-  `d03ebc0` and `984e087` are not confirmed live. Offline run on this tree:
-  `node --test tests/` → 76 pass, 0 fail (`scan.test.mjs` 67, `frame-judge.test.mjs` 9).
-  `node tests/scan.test.mjs` → 67 pass, 0 fail. The browser suites (`tests/e2e-frame.mjs`,
-  `tests/e2e-ui.mjs --net`) were not run, and the browser path of the worker is unchecked.
+  `d03ebc0` and `984e087` are not confirmed live. Work branch `crew/jmvyaxjb1673b` adds
+  `56e7b75` (remove hosted links). Offline run on this tree: `node --test tests/` → 81 pass,
+  0 fail; `node tests/scan.test.mjs` → 67 pass, 0 fail. No browser check has run on the
+  remove path; the browser suites (`tests/e2e-frame.mjs`, `tests/e2e-ui.mjs --net`) are
+  also unrun, and the Web Worker scan path is unchecked in a browser.
 - **Next Up:**
-  1. Grow the reverse-engineered shelf. Only a few browser-playable ones exist; add more
+  1. Check add → remove → reload of a hosted link in a real browser.
+  2. Grow the reverse-engineered shelf. Only a few browser-playable ones exist; add more
      by hand through `tools/reverse-include.txt`.
-  2. Check the Web Worker scan path in a real browser, then run both browser suites on the
+  3. Check the Web Worker scan path in a real browser, then run both browser suites on the
      current tree before the next push.
