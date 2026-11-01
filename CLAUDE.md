@@ -39,10 +39,15 @@ work. **Business side:** the my-brain vault, `projects/zylith/context.md`.
 | `app.js` | Browsing and the game dialog |
 | `lab/` | Adding games: `scan.js` (static scanner), `zip.js`, `pack.js` (GitHub, zip, folder), `frame.js` (sandbox iframe and probe), `store.js` (IndexedDB), `lab-ui.js` (player and Add dialogs) |
 | `tools/` | Builds the catalog; `tools/reverse-include.txt` is the hand list for the reverse-engineered shelf |
-| `tests/` | Scanner unit tests and two Playwright suites |
+| `tests/` | Offline unit tests (scanner, frame judge) and two Playwright suites |
 
 ## Commands & Verification
-- `node tests/scan.test.mjs` — the scanner, no browser.
+- `node --test tests/` — **offline, no browser:** `scan.test.mjs` (scanner, 65 tests) and
+  `frame-judge.test.mjs` (frame verdict judge, 9 tests). Run from the repo root; it must
+  end with `fail 0`.
+- `node tests/scan.test.mjs` — the scanner alone, no browser (the crew's gate).
+- **Needs a browser (Playwright):** `tests/e2e-frame.mjs` and `tests/e2e-ui.mjs`. Not part of
+  `node --test`.
 - `PLAYWRIGHT=<playwright module url> node tests/e2e-frame.mjs` (sandbox) and
   `... node tests/e2e-ui.mjs --net` (whole page, GitHub import). Playwright: PC
   `~/OneDrive/Desktop/Chegga/web/node_modules/playwright`; Mac
@@ -66,14 +71,15 @@ Ignore `.DS_Store`, `__pycache__/`, and local screenshots.
 
 *Overwrite this at the end of every session; move the previous handoff into `HISTORY.md` first.*
 
-- **Last Worked On (2026-10-30):** caught up `HISTORY.md` with the 2026-10-24 rebuild
-  (`54b0188`) in the four-line format, and refreshed this handoff. Since the rebuild,
-  three commits on this branch: the docs restructure (`769557f`), a test of every scanner
-  rule id plus an external-host regex fix (`d03ebc0`), and unit tests for the frame
-  verdict judge (`984e087`).
+- **Last Worked On (2026-10-31):** made the Commands section match reality. It now lists
+  `node --test tests/` as the offline command (scanner and frame judge, no browser), marks
+  the two Playwright suites as the browser-only tests, and keeps their run lines as they
+  were. The test headers already said `node --test tests/`, so they were not changed.
 - **Current State:** the last recorded live site is `main` at `54b0188`. `769557f`,
-  `d03ebc0` and `984e087` are not confirmed live. `node tests/scan.test.mjs` passes 65/65.
-  The browser suites (`tests/e2e-frame.mjs`, `tests/e2e-ui.mjs --net`) were not run.
+  `d03ebc0` and `984e087` are not confirmed live. Offline run on this tree:
+  `node --test tests/` → 74 pass, 0 fail (`scan.test.mjs` 65, `frame-judge.test.mjs` 9).
+  `node tests/scan.test.mjs` → 65 pass, 0 fail. The browser suites (`tests/e2e-frame.mjs`,
+  `tests/e2e-ui.mjs --net`) were not run.
 - **Next Up:**
   1. Grow the reverse-engineered shelf. Only a few browser-playable ones exist; add more
      by hand through `tools/reverse-include.txt`.

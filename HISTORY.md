@@ -20,6 +20,16 @@ This repo is public, so private planning notes stay in the owner's vault
 
 ---
 
+## 2026-10-30 — caught up HISTORY, refreshed handoff
+
+*Mac · Claude · docs only, no code touched · commits `6afe21b`*
+- **Changed:** `HISTORY.md` now records the 2026-10-24 rebuild (`54b0188`) in the four-line
+  format, and the handoff was refreshed.
+- **Why:** the log was behind the rebuild; the handoff had to name the three commits since.
+- **Verified:** not run as tests; the handoff's `node tests/scan.test.mjs` 65/65 figure
+  was recorded from the earlier session.
+- **Left open:** the browser suites were not run.
+
 ## 2026-10-24 — docs restructured to the uniform standard
 
 *Mac · Claude · docs only, no code touched*
