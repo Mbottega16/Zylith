@@ -89,6 +89,7 @@
     tab.textContent = canEmbed ? 'Open in new tab ↗' : 'Play in new tab ↗';
     tab.setAttribute('aria-label', `${tab.textContent.replace(' ↗', '')} for ${g.title}`);
     del.hidden = kind !== 'local'; del.dataset.id = id;
+    const removeHosted = $('#removeHosted'); removeHosted.hidden = !id.startsWith('submitted-'); removeHosted.dataset.id = id;
     note.textContent = ({ instant: canEmbed ? 'Runs on the creator’s own page, inside Zylith.' : 'This creator’s page cannot be shown inside Zylith, so it opens in a new tab.', local: 'Runs in a locked box with no internet. Scanned and tested when you added it.' })[kind];
     dialog.showModal();
   }
@@ -130,6 +131,12 @@
     const id = $('#deleteLocal').dataset.id, g = localGames.find(x => x.id === id);
     if (!g || !confirm(`Delete "${g.title}" and its saves from this browser?`)) return;
     await ZylithLab.remove(id); dialog.close(); await reloadLocal(); toast('Deleted.');
+  });
+
+  $('#removeHosted').addEventListener('click', () => {
+    const id = $('#removeHosted').dataset.id, g = userGames.find(x => x.id === id);
+    if (!g || !confirm(`Remove "${g.title}" from your list?`)) return;
+    userGames = userGames.filter(x => x.id !== id); persist(); dialog.close(); drawFilters(); render(); toast('Removed from your list.');
   });
 
   $('#submitForm').addEventListener('submit', e => {
