@@ -3,13 +3,14 @@
 // Rows that need the player's own game files, and unofficial ports of commercial games, never get in.
 // (The old 2,285-row link index is in git history: commit 743a7ad.)
 import { readFileSync, writeFileSync, existsSync } from 'node:fs';
+import { parseList } from './reverse-list.mjs';
 
 const [harvestFile, verifiedFile, excludeFile] = process.argv.slice(2);
 
 
 const harvest = new Map(harvestFile.split(',').flatMap(f => JSON.parse(readFileSync(f, 'utf8'))).map(r => [r.full_name, r]));
 const verified = verifiedFile.split(',').flatMap(f => readFileSync(f, 'utf8').split('\n').filter(Boolean).map(l => JSON.parse(l)));
-const include = new Set(existsSync('tools/reverse-include.txt') ? readFileSync('tools/reverse-include.txt', 'utf8').split('\n').map(l => l.trim().toLowerCase()).filter(l => l && !l.startsWith('#')) : []);
+const include = existsSync('tools/reverse-include.txt') ? parseList(readFileSync('tools/reverse-include.txt', 'utf8')) : new Set();
 const exclude = new Set(existsSync(excludeFile || '') ? readFileSync(excludeFile, 'utf8').split('\n').map(l => l.trim().toLowerCase()).filter(l => l && !l.startsWith('#')) : []);
 
 const PALETTES = [['#574174', '#d1ff71'], ['#255c63', '#b1f7ed'], ['#713d58', '#ffc0dd'], ['#664d29', '#ffe08b'], ['#334b80', '#b4c7ff']];
