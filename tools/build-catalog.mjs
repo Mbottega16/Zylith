@@ -64,7 +64,7 @@ for (const v of verified) {
     id: 'web-' + r.full_name.toLowerCase().replace(/[^a-z0-9]+/g, '-'), title, creator: r.owner, genre: r.curated ? r.genre : genreOf(r), mood: r.curated ? 'Hand-picked' : r.reverse ? 'Reverse-engineered' : 'Open source',
     platform: r.reverse ? 'Reverse-engineered' : 'Open-source web game', accessType: 'instant', embed, url, repoUrl: r.html_url || undefined, license: r.license || '', stars: r.stars,
     description: (r.description || `${title}, an open-source browser game by ${r.owner}.`).replace(/\s+/g, ' ').slice(0, 200),
-    symbol: SYMBOLS[n % 5], word: title.slice(0, 18).toUpperCase(), colors: PALETTES[n % 5], featured: (r.stars >= 300 || r.curated) && embed, catalogSource: r.curated ? 'Hand-picked + browser check' : 'GitHub topic search + browser check',
+    symbol: SYMBOLS[n % 5], word: title.slice(0, 18).toUpperCase(), colors: PALETTES[n % 5], featured: (r.stars >= 300 || r.curated) && embed, catalogSource: r.curated ? 'Hand-picked + browser check' : 'GitHub topic search + browser check', verdict: 'pass',
   });
 }
 entries.sort((a, b) => (b.embed - a.embed) || b.stars - a.stars);
