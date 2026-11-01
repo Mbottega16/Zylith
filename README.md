@@ -73,6 +73,8 @@ Most reverse-engineering projects cannot run in a browser. A decompilation is C 
 
 To add a reverse-engineered game that does run in a browser, use **Add a game** with its GitHub link. If the repo has a web build, Zylith runs it. If it is native source, Zylith says so.
 
+How a game gets onto the reverse-engineered shelf (the hand list, the browser check, and the rebuild) is in [docs/reverse-shelf.md](docs/reverse-shelf.md).
+
 Access types: `instant` (plays now) and `local` (games you added).
 
 ## Tests
