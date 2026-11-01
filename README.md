@@ -28,7 +28,7 @@ A repo that only holds source code (it needs `npm run build`) cannot run. Zylith
 
 ## How Zylith tests a game
 
-Each package goes through four steps.
+Each package goes through four steps. The full flow, with the scanner's pass rule and each verdict, is in [docs/add-a-game.md](docs/add-a-game.md).
 
 1. **Fetch.** Size limits: 300 MB unpacked, 4,000 files, 80 MB per file. A zip bomb stops early.
 2. **Static scan** (`lab/scan.js`). The scan never runs the code. It checks:
