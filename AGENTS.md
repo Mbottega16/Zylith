@@ -35,14 +35,19 @@ work. **Business side:** the my-brain vault, `projects/zylith/context.md`.
 ## How it's built
 | | |
 |---|---|
-| `games.js` | The catalog (about 70 rows, all checked in a browser) |
+| `games.js` | The catalog (74 rows: 65 open-source web games, 9 reverse-engineered; 74 instant, all checked in a browser) |
 | `app.js` | Browsing and the game dialog |
 | `lab/` | Adding games: `scan.js` (static scanner), `zip.js`, `pack.js` (GitHub, zip, folder), `frame.js` (sandbox iframe and probe), `store.js` (IndexedDB), `lab-ui.js` (player and Add dialogs) |
 | `tools/` | Builds the catalog; `tools/reverse-include.txt` is the hand list for the reverse-engineered shelf |
-| `tests/` | Scanner unit tests and two Playwright suites |
+| `tests/` | Offline unit tests (scanner, frame judge) and two Playwright suites |
 
 ## Commands & Verification
-- `node tests/scan.test.mjs` — the scanner, no browser.
+- `node --test tests/` — **offline, no browser:** `scan.test.mjs` (scanner, 67 tests) and
+  `frame-judge.test.mjs` (frame verdict judge, 9 tests). Run from the repo root; it must
+  end with `fail 0`.
+- `node tests/scan.test.mjs` — the scanner alone, no browser (the crew's gate).
+- **Needs a browser (Playwright):** `tests/e2e-frame.mjs` and `tests/e2e-ui.mjs`. Not part of
+  `node --test`.
 - `PLAYWRIGHT=<playwright module url> node tests/e2e-frame.mjs` (sandbox) and
   `... node tests/e2e-ui.mjs --net` (whole page, GitHub import). Playwright: PC
   `~/OneDrive/Desktop/Chegga/web/node_modules/playwright`; Mac
@@ -66,13 +71,18 @@ Ignore `.DS_Store`, `__pycache__/`, and local screenshots.
 
 *Overwrite this at the end of every session; move the previous handoff into `HISTORY.md` first.*
 
-- **Last Worked On (2026-10-24):** rebuilt around playable games — Add-a-game (GitHub
-  link, zip, HTML file, folder) with a static scanner, a sandboxed test run and local
-  storage; a 74-row checked catalog (9 reverse-engineered) replaced the 2,285-row link
-  index. Favorites, the "bring your game files" tab and the source-project tab were
-  removed. Later the same day the docs were restructured (no code change).
-- **Current State:** live on GitHub Pages from `main` (`54b0188`).
+- **Last Worked On (2026-11-01):** players can remove hosted links. In the game dialog,
+  a `submitted-` row shows "Remove from my list" (`#removeHosted` in `index.html`, handler
+  in `app.js`). It confirms, drops the row from `userGames`, calls `persist()` and re-renders.
+- **Current State:** the last recorded live site is `main` at `54b0188`. `769557f`,
+  `d03ebc0` and `984e087` are not confirmed live. Work branch `crew/jmvyaxjb1673b` adds
+  `56e7b75` (remove hosted links). Offline run on this tree: `node --test tests/` → 85 pass,
+  0 fail; `node tests/scan.test.mjs` → 67 pass, 0 fail. No browser check has run on the
+  remove path; the browser suites (`tests/e2e-frame.mjs`, `tests/e2e-ui.mjs --net`) are
+  also unrun, and the Web Worker scan path is unchecked in a browser.
 - **Next Up:**
-  1. Grow the reverse-engineered shelf. Only a few browser-playable ones exist; add more
+  1. Check add → remove → reload of a hosted link in a real browser.
+  2. Grow the reverse-engineered shelf. Only a few browser-playable ones exist; add more
      by hand through `tools/reverse-include.txt`.
-  2. Consider a worker thread for the scanner on very large packages.
+  3. Check the Web Worker scan path in a real browser, then run both browser suites on the
+     current tree before the next push.
