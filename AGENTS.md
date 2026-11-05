@@ -43,8 +43,8 @@ work. **Business side:** the my-brain vault, `projects/zylith/context.md`.
 
 ## Commands & Verification
 - `node --test tests/` — **offline, no browser:** `scan.test.mjs` (scanner, 67 tests) and
-  `frame-judge.test.mjs` (frame verdict judge, 9 tests). Run from the repo root; it must
-  end with `fail 0`.
+  `frame-judge.test.mjs` (frame verdict judge and mount auth, 12 tests). Run from the
+  repo root; it must end with `fail 0`. Total offline suite is 98 tests.
 - `node tests/scan.test.mjs` — the scanner alone, no browser (the crew's gate).
 - **Needs a browser (Playwright):** `tests/e2e-frame.mjs` and `tests/e2e-ui.mjs`. Not part of
   `node --test`.
@@ -71,18 +71,17 @@ Ignore `.DS_Store`, `__pycache__/`, and local screenshots.
 
 *Overwrite this at the end of every session; move the previous handoff into `HISTORY.md` first.*
 
-- **Last Worked On (2026-11-01):** players can remove hosted links. In the game dialog,
-  a `submitted-` row shows "Remove from my list" (`#removeHosted` in `index.html`, handler
-  in `app.js`). It confirms, drops the row from `userGames`, calls `persist()` and re-renders.
-- **Current State:** the last recorded live site is `main` at `54b0188`. `769557f`,
-  `d03ebc0` and `984e087` are not confirmed live. Work branch `crew/jmvyaxjb1673b` adds
-  `56e7b75` (remove hosted links). Offline run on this tree: `node --test tests/` → 85 pass,
-  0 fail; `node tests/scan.test.mjs` → 67 pass, 0 fail. No browser check has run on the
-  remove path; the browser suites (`tests/e2e-frame.mjs`, `tests/e2e-ui.mjs --net`) are
-  also unrun, and the Web Worker scan path is unchecked in a browser.
+- **Last Worked On (2026-11-05):** authenticated sandbox frame messages to prevent probe
+  spoofing. In `mount()`, generated a cryptographically random session token, passed it to
+  `loader()` during the boot handshake, and updated `onMsg` to reject any message where
+  `data.token` does not match. Added unit tests in `tests/frame-judge.test.mjs` and a
+  `spoof` end-to-end browser test case in `tests/e2e-frame.mjs`.
+- **Current State:** work branch `crew/jmw343qgi4c86`. Offline run on this tree:
+  `node --test tests/` → 98 pass, 0 fail; `node tests/scan.test.mjs` → 67 pass, 0 fail.
+  Browser suites pass: `node tests/e2e-frame.mjs` (all 6 cases including spoof check),
+  `node tests/e2e-ui.mjs`, and `node tests/e2e-remove.mjs`.
 - **Next Up:**
-  1. Check add → remove → reload of a hosted link in a real browser.
-  2. Grow the reverse-engineered shelf. Only a few browser-playable ones exist; add more
+  1. Grow the reverse-engineered shelf. Only a few browser-playable ones exist; add more
      by hand through `tools/reverse-include.txt`.
-  3. Check the Web Worker scan path in a real browser, then run both browser suites on the
+  2. Check the Web Worker scan path in a real browser, then run both browser suites on the
      current tree before the next push.

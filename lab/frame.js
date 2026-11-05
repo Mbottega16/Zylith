@@ -14,13 +14,14 @@
   // ===== Frame side. This function is copied into the iframe as text: it may not use outer variables. =====
   function loader(cfg) {
     'use strict';
+    let token = null;
     const P = {
       frames: 0, raf: 0, timers: 0, draws2d: 0, drawsGL: 0, canvases: 0, mutations: 0, audio: 0, plays: 0,
       listeners: {}, hashes: 0, nonBlank: false, errors: 0, firstError: '', blocked: [], navigated: false,
       popups: 0, dialogs: 0, storageWrites: 0, clipboard: 0, media: 0, download: 0, pokes: 0, booted: false,
     };
     const seenHash = new Set();
-    const post = m => { try { parent.postMessage(Object.assign({ zy: 1 }, m), '*'); } catch (e) { /* ignore */ } };
+    const post = m => { try { parent.postMessage(Object.assign({ zy: 1 }, m, token ? { token } : {}), '*'); } catch (e) { /* ignore */ } };
     const snap = () => Object.assign({}, P, { blocked: P.blocked.slice(0, 12) });
 
     // ---- probe ----
@@ -240,6 +241,7 @@
       const m = e.data;
       if (!m || m.zy !== 'boot' || P.booted) return;
       P.booted = true;
+      token = m.token || null;
       originPath = m.origin || '';
       saved = m.saves || {};
       local._load(saved);
@@ -298,6 +300,22 @@
     return { result, checks, tries };
   }
 
+  function randomToken() {
+    let c = typeof crypto !== 'undefined' ? crypto : null;
+    if (!c && typeof require === 'function') {
+      try { c = require('node:crypto'); } catch (e) { /* ignore */ }
+    }
+    if (c) {
+      if (typeof c.randomUUID === 'function') return c.randomUUID();
+      if (typeof c.getRandomValues === 'function') {
+        const bytes = new Uint8Array(16);
+        c.getRandomValues(bytes);
+        return Array.from(bytes, b => b.toString(16).padStart(2, '0')).join('');
+      }
+    }
+    return Math.random().toString(36).slice(2) + Math.random().toString(36).slice(2);
+  }
+
   /**
    * Mount a package in a sandboxed iframe.
    * @param {HTMLElement} host
@@ -306,6 +324,7 @@
    */
   function mount(host, pkg, hooks) {
     hooks = hooks || {};
+    const token = randomToken();
     const frame = document.createElement('iframe');
     frame.className = 'sandbox-frame';
     frame.setAttribute('sandbox', 'allow-scripts allow-pointer-lock');
@@ -314,14 +333,20 @@
     frame.setAttribute('title', 'Game');
     frame.srcdoc = loaderDoc();
     let alive = true;
+    let booted = false;
     const onMsg = e => {
       if (e.source !== frame.contentWindow || !e.data || e.data.zy !== 1) return;
       const m = e.data;
       if (m.t === 'ready') {
+        if (booted) return;
+        booted = true;
         const list = [], transfer = [];
         for (const [path, bytes] of pkg.files) { const buf = bytes.slice().buffer; list.push([path, packApi.mimeOf(path), buf]); transfer.push(buf); }
-        frame.contentWindow.postMessage({ zy: 'boot', entry: pkg.entry, files: list, saves: hooks.saves || {}, origin: location.href.replace(/[^/]*$/, '') }, '*', transfer);
-      } else if (m.t === 'probe' && hooks.onProbe) hooks.onProbe(m.p);
+        frame.contentWindow.postMessage({ zy: 'boot', token, entry: pkg.entry, files: list, saves: hooks.saves || {}, origin: location.href.replace(/[^/]*$/, '') }, '*', transfer);
+        return;
+      }
+      if (m.token !== token) return;
+      if (m.t === 'probe' && hooks.onProbe) hooks.onProbe(m.p);
       else if (m.t === 'save' && hooks.onSave) hooks.onSave(m.data);
       else if (m.t === 'navigated') { if (alive && hooks.onNavigated) hooks.onNavigated(); }
       else if (m.t === 'fatal' && hooks.onFatal) hooks.onFatal(m.msg);
@@ -330,6 +355,7 @@
     host.appendChild(frame);
     return {
       frame,
+      token,
       poke() { try { frame.contentWindow.postMessage({ zy: 'poke' }, '*'); } catch (e) { /* ignore */ } },
       destroy() { alive = false; window.removeEventListener('message', onMsg); frame.remove(); },
     };

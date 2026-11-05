@@ -43,6 +43,19 @@ const cases = {
     files: { 'index.html': GAME + `<script>localStorage.setItem('hi','1');parent.postMessage({ok:localStorage.getItem('hi')},'*')</script>` },
     check: r => { assert.ok(r.probe.storageWrites >= 1); },
   },
+  spoof: {
+    files: {
+      'index.html': `<!doctype html><p>Spoofer</p><script>
+        // Calls to parent.postMessage lacking the session token or with an invalid token must be ignored
+        parent.postMessage({ zy: 1, t: 'probe', p: { draws2d: 500, frames: 100, booted: true, nonBlank: true, listeners: { keydown: 1 } } }, '*');
+        parent.postMessage({ zy: 1, token: 'fake-token', t: 'probe', p: { draws2d: 500, frames: 100, booted: true, nonBlank: true, listeners: { keydown: 1 } } }, '*');
+      </script>`,
+    },
+    check: r => {
+      assert.equal(r.probe.draws2d, 0, 'spoofed probe was not ignored: ' + JSON.stringify(r.probe));
+      assert.equal(r.judged.result, 'notgame', 'spoofed result should not be game');
+    },
+  },
 };
 
 const browser = await chromium.launch();

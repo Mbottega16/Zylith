@@ -20,6 +20,14 @@ This repo is public, so private planning notes stay in the owner's vault
 
 ---
 
+## 2026-11-05 — authenticate sandbox frame messages to prevent probe spoofing
+
+*Mac · Antigravity · commits on `crew/jmw343qgi4c86`*
+- **Changed:** `ZylithFrame.mount()` generates a cryptographically random session token via `crypto.randomUUID()` (with fallback to `crypto.getRandomValues`). The token is sent to the frame during the boot handshake message. The sandbox frame's internal probe `post()` helper attaches the token to all outgoing messages (`probe`, `save`, `navigated`, `fatal`, `booted`). `onMsg` in `mount()` rejects any message where `m.token !== token` (ignoring spoofed `parent.postMessage` calls).
+- **Why:** untrusted code running inside the sandbox iframe could call `parent.postMessage({ zy: 1, t: 'probe', ... })` or fake saves/navigation to spoof probe checks.
+- **Verified:** `node tests/scan.test.mjs` → 67 pass, 0 fail. `node --test tests/` → 98 pass, 0 fail (3 new unit tests in `tests/frame-judge.test.mjs`). `node tests/e2e-frame.mjs` → 6 pass, 0 fail (new `spoof` test case in Chromium verifying calls lacking the token are ignored). `node tests/e2e-ui.mjs` → 6 pass, 0 fail. `node tests/e2e-remove.mjs` → 6 pass, 0 fail.
+- **Left open:** none.
+
 ## 2026-11-01 — players can remove hosted links from their list
 
 *Mac · Claude · commits `56e7b75` on `crew/jmvyaxjb1673b`*

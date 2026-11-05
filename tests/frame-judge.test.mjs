@@ -2,7 +2,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { createRequire } from 'node:module';
-const { judge } = createRequire(import.meta.url)('../lab/frame.js');
+const { judge, mount } = createRequire(import.meta.url)('../lab/frame.js');
 
 // Probe snapshots, shaped like the object the frame's probe posts to the parent.
 const probe = over => Object.assign({
@@ -70,4 +70,167 @@ test('page that fails to load is not a game', () => {
   const r = judge({ ...CANVAS_GAME, booted: false, errors: 6, frames: 0 });
   assert.notEqual(r.result, 'game', JSON.stringify(r.checks));
   assert.ok(failed(r).includes('loads'));
+});
+
+test('mount generates a session token and passes it to loader during boot handshake', () => {
+  let messageHandler = null;
+  const originalWindow = globalThis.window;
+  const originalDoc = globalThis.document;
+  const originalLoc = globalThis.location;
+
+  try {
+    let bootPayload = null;
+    const fakeContentWindow = {
+      postMessage: msg => { if (msg && msg.zy === 'boot') bootPayload = msg; },
+    };
+    const fakeFrame = {
+      setAttribute: () => {},
+      className: '',
+      srcdoc: '',
+      contentWindow: fakeContentWindow,
+      remove: () => {},
+    };
+    globalThis.window = {
+      addEventListener: (evt, fn) => { if (evt === 'message') messageHandler = fn; },
+      removeEventListener: (evt, fn) => { if (evt === 'message' && messageHandler === fn) messageHandler = null; },
+    };
+    globalThis.document = { createElement: () => fakeFrame };
+    globalThis.location = { href: 'http://localhost/' };
+
+    const host = { appendChild: () => {} };
+    const m = mount(host, { files: new Map(), entry: 'index.html' });
+
+    assert.ok(typeof m.token === 'string' && m.token.length >= 10, 'mount must generate a session token');
+
+    messageHandler({ source: fakeContentWindow, data: { zy: 1, t: 'ready' } });
+    assert.ok(bootPayload, 'boot payload must be sent');
+    assert.equal(bootPayload.token, m.token, 'token must be passed during boot handshake');
+
+    m.destroy();
+  } finally {
+    globalThis.window = originalWindow;
+    globalThis.document = originalDoc;
+    globalThis.location = originalLoc;
+  }
+});
+
+test('mount rejects any message lacking the session token or with a mismatched token', () => {
+  let messageHandler = null;
+  const originalWindow = globalThis.window;
+  const originalDoc = globalThis.document;
+  const originalLoc = globalThis.location;
+
+  try {
+    const fakeContentWindow = { postMessage: () => {} };
+    const fakeFrame = {
+      setAttribute: () => {},
+      className: '',
+      srcdoc: '',
+      contentWindow: fakeContentWindow,
+      remove: () => {},
+    };
+    globalThis.window = {
+      addEventListener: (evt, fn) => { if (evt === 'message') messageHandler = fn; },
+      removeEventListener: (evt, fn) => { if (evt === 'message' && messageHandler === fn) messageHandler = null; },
+    };
+    globalThis.document = { createElement: () => fakeFrame };
+    globalThis.location = { href: 'http://localhost/' };
+
+    const probes = [];
+    const saves = [];
+    let navigated = false;
+    let fatal = null;
+
+    const host = { appendChild: () => {} };
+    const m = mount(host, { files: new Map(), entry: 'index.html' }, {
+      onProbe: p => probes.push(p),
+      onSave: d => saves.push(d),
+      onNavigated: () => { navigated = true; },
+      onFatal: msg => { fatal = msg; },
+    });
+
+    // Complete boot handshake
+    messageHandler({ source: fakeContentWindow, data: { zy: 1, t: 'ready' } });
+
+    // 1. Calls lacking token are ignored
+    messageHandler({ source: fakeContentWindow, data: { zy: 1, t: 'probe', p: { draws2d: 100 } } });
+    messageHandler({ source: fakeContentWindow, data: { zy: 1, t: 'save', data: { cheat: true } } });
+    messageHandler({ source: fakeContentWindow, data: { zy: 1, t: 'navigated' } });
+    messageHandler({ source: fakeContentWindow, data: { zy: 1, t: 'fatal', msg: 'fake' } });
+
+    assert.equal(probes.length, 0, 'probe lacking token must be rejected');
+    assert.equal(saves.length, 0, 'save lacking token must be rejected');
+    assert.equal(navigated, false, 'navigated lacking token must be rejected');
+    assert.equal(fatal, null, 'fatal lacking token must be rejected');
+
+    // 2. Calls with wrong token are ignored
+    messageHandler({ source: fakeContentWindow, data: { zy: 1, token: 'wrong', t: 'probe', p: { draws2d: 100 } } });
+    messageHandler({ source: fakeContentWindow, data: { zy: 1, token: 'wrong', t: 'save', data: { cheat: true } } });
+    messageHandler({ source: fakeContentWindow, data: { zy: 1, token: 'wrong', t: 'navigated' } });
+    messageHandler({ source: fakeContentWindow, data: { zy: 1, token: 'wrong', t: 'fatal', msg: 'fake' } });
+
+    assert.equal(probes.length, 0, 'probe with mismatched token must be rejected');
+    assert.equal(saves.length, 0, 'save with mismatched token must be rejected');
+    assert.equal(navigated, false, 'navigated with mismatched token must be rejected');
+    assert.equal(fatal, null, 'fatal with mismatched token must be rejected');
+
+    // 3. Calls with valid token are accepted
+    messageHandler({ source: fakeContentWindow, data: { zy: 1, token: m.token, t: 'probe', p: { draws2d: 42 } } });
+    messageHandler({ source: fakeContentWindow, data: { zy: 1, token: m.token, t: 'save', data: { level: 2 } } });
+    messageHandler({ source: fakeContentWindow, data: { zy: 1, token: m.token, t: 'fatal', msg: 'real error' } });
+    messageHandler({ source: fakeContentWindow, data: { zy: 1, token: m.token, t: 'navigated' } });
+
+    assert.deepEqual(probes, [{ draws2d: 42 }]);
+    assert.deepEqual(saves, [{ level: 2 }]);
+    assert.equal(fatal, 'real error');
+    assert.equal(navigated, true);
+
+    m.destroy();
+  } finally {
+    globalThis.window = originalWindow;
+    globalThis.document = originalDoc;
+    globalThis.location = originalLoc;
+  }
+});
+
+test('mount ignores repeated ready messages after boot', () => {
+  let messageHandler = null;
+  const originalWindow = globalThis.window;
+  const originalDoc = globalThis.document;
+  const originalLoc = globalThis.location;
+
+  try {
+    let bootCount = 0;
+    const fakeContentWindow = {
+      postMessage: msg => { if (msg && msg.zy === 'boot') bootCount++; },
+    };
+    const fakeFrame = {
+      setAttribute: () => {},
+      className: '',
+      srcdoc: '',
+      contentWindow: fakeContentWindow,
+      remove: () => {},
+    };
+    globalThis.window = {
+      addEventListener: (evt, fn) => { if (evt === 'message') messageHandler = fn; },
+      removeEventListener: (evt, fn) => { if (evt === 'message' && messageHandler === fn) messageHandler = null; },
+    };
+    globalThis.document = { createElement: () => fakeFrame };
+    globalThis.location = { href: 'http://localhost/' };
+
+    const host = { appendChild: () => {} };
+    const m = mount(host, { files: new Map(), entry: 'index.html' });
+
+    messageHandler({ source: fakeContentWindow, data: { zy: 1, t: 'ready' } });
+    assert.equal(bootCount, 1);
+
+    messageHandler({ source: fakeContentWindow, data: { zy: 1, t: 'ready' } });
+    assert.equal(bootCount, 1, 'repeated ready message must not re-boot');
+
+    m.destroy();
+  } finally {
+    globalThis.window = originalWindow;
+    globalThis.document = originalDoc;
+    globalThis.location = originalLoc;
+  }
 });
