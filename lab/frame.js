@@ -50,7 +50,7 @@
     }
     const rafOrig = window.requestAnimationFrame.bind(window);
     window.requestAnimationFrame = cb => { P.raf++; return rafOrig(t => { P.frames++; try { cb(t); } finally { sample(); } }); };
-    const si = window.setInterval, st = window.setTimeout;
+    const si = window.setInterval, st = window.setTimeout, ct = window.clearTimeout;
     window.setInterval = function () { P.timers++; return si.apply(window, arguments); };
     window.setTimeout = function () { P.timers++; return st.apply(window, arguments); };
     for (const n of ['fillRect', 'strokeRect', 'drawImage', 'fillText', 'stroke', 'fill', 'putImageData', 'clearRect']) wrap(CanvasRenderingContext2D.prototype, n, () => { P.draws2d++; });
@@ -86,14 +86,29 @@
         removeItem(k) { delete data[k]; flush(); }, clear() { for (const k in data) delete data[k]; flush(); },
         key: i => Object.keys(data)[i] ?? null, get length() { return Object.keys(data).length; },
       };
-      let timer = 0;
-      function flush() { if (!persist || timer) return; timer = st(() => { timer = 0; post({ t: 'save', data: Object.assign({}, data) }); }, 1500); }
+      let timer = 0, pending = false;
+      function flush() {
+        if (!persist) return;
+        pending = true;
+        if (!timer) timer = st(() => { timer = 0; pending = false; post({ t: 'save', data: Object.assign({}, data) }); }, 1500);
+      }
+      function flushSync() {
+        if (!persist || !pending) return;
+        if (timer) { ct(timer); timer = 0; }
+        pending = false;
+        post({ t: 'save', data: Object.assign({}, data) });
+      }
       api._load = obj => { for (const k in obj) data[k] = String(obj[k]); };
+      api._flush = flushSync;
       return new Proxy(api, { get: (t, k) => (k in t ? t[k] : data[k]), set: (t, k, v) => { t.setItem(k, v); return true; }, has: (t, k) => k in t || k in data,
         ownKeys: () => Object.keys(data), getOwnPropertyDescriptor: (t, k) => (k in data ? { value: data[k], enumerable: true, configurable: true, writable: true } : undefined) });
     }
     const local = makeStorage(true), session = makeStorage(false);
     for (const [k, v] of [['localStorage', local], ['sessionStorage', session]]) { try { Object.defineProperty(window, k, { value: v, configurable: true }); } catch (e) { /* ignore */ } }
+    const flushPending = () => { local._flush(); };
+    window.addEventListener('pagehide', flushPending);
+    window.addEventListener('beforeunload', flushPending);
+    window.addEventListener('message', ev => { if (ev.data && ev.data.zy === 'flush') flushPending(); });
 
     // ---- file lookup used while rewriting the page and at run time ----
     const files = new Map();
@@ -250,13 +265,17 @@
       try { html = rewritePage(new TextDecoder().decode(files.get(m.entry).buf), m.entry); }
       catch (err) { post({ t: 'fatal', msg: String(err && err.message || err) }); return; }
       document.open(); document.write(html); document.close();
-      const leave = () => { P.navigated = true; post({ t: 'navigated' }); };
+      const leave = () => { flushPending(); P.navigated = true; post({ t: 'navigated' }); };
       window.addEventListener('pagehide', leave);
       window.addEventListener('beforeunload', leave);
       try {
         new MutationObserver(r => { P.mutations += r.length; }).observe(document.documentElement, { childList: true, attributes: true, characterData: true, subtree: true });
       } catch (err) { /* ignore */ }
-      window.addEventListener('message', ev => { if (ev.data && ev.data.zy === 'poke') poke(); });
+      window.addEventListener('message', ev => {
+        if (!ev.data) return;
+        if (ev.data.zy === 'poke') poke();
+        if (ev.data.zy === 'flush') flushPending();
+      });
       setInterval(() => { sample(); post({ t: 'probe', p: snap() }); }, 700);
       post({ t: 'booted' });
     });
@@ -324,6 +343,7 @@
    */
   function mount(host, pkg, hooks) {
     hooks = hooks || {};
+    const win = typeof window !== 'undefined' ? window : globalThis.window;
     const token = randomToken();
     const frame = document.createElement('iframe');
     frame.className = 'sandbox-frame';
@@ -334,12 +354,22 @@
     frame.srcdoc = loaderDoc();
     let alive = true;
     let booted = false;
+    let targetWindow = null;
+    let cleanupTimer = null;
+    let cleaned = false;
+    const cleanup = () => {
+      if (cleaned) return;
+      cleaned = true;
+      if (cleanupTimer) { clearTimeout(cleanupTimer); cleanupTimer = null; }
+      try { if (win && win.removeEventListener) win.removeEventListener('message', onMsg); } catch (e) { /* ignore */ }
+    };
     const onMsg = e => {
-      if (e.source !== frame.contentWindow || !e.data || e.data.zy !== 1) return;
+      if ((e.source !== frame.contentWindow && e.source !== targetWindow) || !e.data || e.data.zy !== 1) return;
       const m = e.data;
       if (m.t === 'ready') {
         if (booted) return;
         booted = true;
+        targetWindow = e.source;
         const list = [], transfer = [];
         for (const [path, bytes] of pkg.files) { const buf = bytes.slice().buffer; list.push([path, packApi.mimeOf(path), buf]); transfer.push(buf); }
         frame.contentWindow.postMessage({ zy: 'boot', token, entry: pkg.entry, files: list, saves: hooks.saves || {}, origin: location.href.replace(/[^/]*$/, '') }, '*', transfer);
@@ -347,17 +377,28 @@
       }
       if (m.token !== token) return;
       if (m.t === 'probe' && hooks.onProbe) hooks.onProbe(m.p);
-      else if (m.t === 'save' && hooks.onSave) hooks.onSave(m.data);
+      else if (m.t === 'save') {
+        try { if (hooks.onSave) hooks.onSave(m.data); } finally { if (!alive) cleanup(); }
+      }
       else if (m.t === 'navigated') { if (alive && hooks.onNavigated) hooks.onNavigated(); }
       else if (m.t === 'fatal' && hooks.onFatal) hooks.onFatal(m.msg);
     };
-    window.addEventListener('message', onMsg);
+    if (win && win.addEventListener) win.addEventListener('message', onMsg);
     host.appendChild(frame);
+    if (!targetWindow) targetWindow = frame.contentWindow;
+    const flush = () => { try { (frame.contentWindow || targetWindow).postMessage({ zy: 'flush' }, '*'); } catch (e) { /* ignore */ } };
     return {
       frame,
       token,
-      poke() { try { frame.contentWindow.postMessage({ zy: 'poke' }, '*'); } catch (e) { /* ignore */ } },
-      destroy() { alive = false; window.removeEventListener('message', onMsg); frame.remove(); },
+      poke() { try { (frame.contentWindow || targetWindow).postMessage({ zy: 'poke' }, '*'); } catch (e) { /* ignore */ } },
+      flush,
+      destroy() {
+        alive = false;
+        flush();
+        frame.remove();
+        cleanupTimer = setTimeout(cleanup, 0);
+        if (cleanupTimer && typeof cleanupTimer.unref === 'function') cleanupTimer.unref();
+      },
     };
   }
 

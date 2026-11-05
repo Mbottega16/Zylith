@@ -234,3 +234,87 @@ test('mount ignores repeated ready messages after boot', () => {
     globalThis.location = originalLoc;
   }
 });
+
+test('mount.destroy triggers explicit flush before frame removal', () => {
+  let messageHandler = null;
+  const originalWindow = globalThis.window;
+  const originalDoc = globalThis.document;
+  const originalLoc = globalThis.location;
+
+  try {
+    const events = [];
+    const fakeContentWindow = {
+      postMessage: msg => { events.push('postMessage: ' + (msg && msg.zy)); },
+    };
+    const fakeFrame = {
+      setAttribute: () => {},
+      className: '',
+      srcdoc: '',
+      contentWindow: fakeContentWindow,
+      remove: () => { events.push('frame.remove'); },
+    };
+    globalThis.window = {
+      addEventListener: (evt, fn) => { if (evt === 'message') messageHandler = fn; },
+      removeEventListener: (evt, fn) => { if (evt === 'message' && messageHandler === fn) messageHandler = null; },
+    };
+    globalThis.document = { createElement: () => fakeFrame };
+    globalThis.location = { href: 'http://localhost/' };
+
+    const host = { appendChild: () => {} };
+    const m = mount(host, { files: new Map(), entry: 'index.html' });
+
+    messageHandler({ source: fakeContentWindow, data: { zy: 1, t: 'ready' } });
+    events.length = 0; // clear boot handshake event
+
+    m.destroy();
+
+    assert.deepEqual(events, ['postMessage: flush', 'frame.remove'], 'flush must precede frame removal');
+  } finally {
+    globalThis.window = originalWindow;
+    globalThis.document = originalDoc;
+    globalThis.location = originalLoc;
+  }
+});
+
+test('mount delivers onSave even if save arrives after destroy()', () => {
+  let messageHandler = null;
+  const originalWindow = globalThis.window;
+  const originalDoc = globalThis.document;
+  const originalLoc = globalThis.location;
+
+  try {
+    const fakeContentWindow = { postMessage: () => {} };
+    const fakeFrame = {
+      setAttribute: () => {},
+      className: '',
+      srcdoc: '',
+      contentWindow: fakeContentWindow,
+      remove: () => {},
+    };
+    globalThis.window = {
+      addEventListener: (evt, fn) => { if (evt === 'message') messageHandler = fn; },
+      removeEventListener: (evt, fn) => { if (evt === 'message' && messageHandler === fn) messageHandler = null; },
+    };
+    globalThis.document = { createElement: () => fakeFrame };
+    globalThis.location = { href: 'http://localhost/' };
+
+    let saved = null;
+    const host = { appendChild: () => {} };
+    const m = mount(host, { files: new Map(), entry: 'index.html' }, {
+      onSave: d => { saved = d; },
+    });
+
+    messageHandler({ source: fakeContentWindow, data: { zy: 1, t: 'ready' } });
+
+    m.destroy();
+
+    // Now simulate synchronous flush message from pagehide arriving at window
+    messageHandler({ source: fakeContentWindow, data: { zy: 1, token: m.token, t: 'save', data: { score: 99 } } });
+
+    assert.deepEqual(saved, { score: 99 }, 'save message after destroy must be delivered to onSave');
+  } finally {
+    globalThis.window = originalWindow;
+    globalThis.document = originalDoc;
+    globalThis.location = originalLoc;
+  }
+});

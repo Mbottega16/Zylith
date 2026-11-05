@@ -20,6 +20,14 @@ This repo is public, so private planning notes stay in the owner's vault
 
 ---
 
+## 2026-11-05 — synchronously flush sandbox storage before frame unmount
+
+*Mac · Antigravity · commits on `crew/jmw34jt6ie5c6`*
+- **Changed:** `loader()` tracks pending storage writes in `localStorage` and exposes `_flush()` to synchronously cancel pending debounce timers and post save data to parent on `pagehide`, `beforeunload`, and explicit `zy: 'flush'` messages. `ZylithFrame.mount()` adds an explicit `flush()` trigger and calls it in `destroy()` prior to removing the iframe DOM node, while retaining the message listener and window reference to process incoming synchronous flush saves. Added unit tests in `tests/frame-judge.test.mjs` and `storage-destroy-reload` test in `tests/e2e-frame.mjs`.
+- **Why:** data written to localStorage immediately prior to calling `destroy()` was debounced with a 1500ms timer and lost when the iframe was unmounted.
+- **Verified:** `node tests/scan.test.mjs` → 67 pass, 0 fail. `node --test tests/` → 100 pass, 0 fail (2 new unit tests in `tests/frame-judge.test.mjs`). `node tests/e2e-frame.mjs` → 7 pass, 0 fail (new `storage-destroy-reload` case). `node tests/e2e-ui.mjs` → 6 pass, 0 fail. `node tests/e2e-remove.mjs` → 6 pass, 0 fail.
+- **Left open:** none.
+
 ## 2026-11-05 — authenticate sandbox frame messages to prevent probe spoofing
 
 *Mac · Antigravity · commits on `crew/jmw343qgi4c86`*

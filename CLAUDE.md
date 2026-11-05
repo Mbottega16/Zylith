@@ -71,14 +71,14 @@ Ignore `.DS_Store`, `__pycache__/`, and local screenshots.
 
 *Overwrite this at the end of every session; move the previous handoff into `HISTORY.md` first.*
 
-- **Last Worked On (2026-11-05):** authenticated sandbox frame messages to prevent probe
-  spoofing. In `mount()`, generated a cryptographically random session token, passed it to
-  `loader()` during the boot handshake, and updated `onMsg` to reject any message where
-  `data.token` does not match. Added unit tests in `tests/frame-judge.test.mjs` and a
-  `spoof` end-to-end browser test case in `tests/e2e-frame.mjs`.
-- **Current State:** work branch `crew/jmw343qgi4c86`. Offline run on this tree:
-  `node --test tests/` → 98 pass, 0 fail; `node tests/scan.test.mjs` → 67 pass, 0 fail.
-  Browser suites pass: `node tests/e2e-frame.mjs` (all 6 cases including spoof check),
+- **Last Worked On (2026-11-05):** flushed sandbox localStorage immediately before frame unmount.
+  In `loader()`, synchronously flush pending storage writes on `pagehide`, `beforeunload`, and
+  explicit `zy: 'flush'` messages. In `mount.destroy()`, added an explicit flush trigger before
+  `frame.remove()` and preserved message reception for the flush save. Added unit tests in
+  `tests/frame-judge.test.mjs` and end-to-end browser test case in `tests/e2e-frame.mjs`.
+- **Current State:** work branch `crew/jmw34jt6ie5c6`. Offline run on this tree:
+  `node --test tests/` → 100 pass, 0 fail; `node tests/scan.test.mjs` → 67 pass, 0 fail.
+  Browser suites pass: `node tests/e2e-frame.mjs` (all 7 cases including storage reload),
   `node tests/e2e-ui.mjs`, and `node tests/e2e-remove.mjs`.
 - **Next Up:**
   1. Grow the reverse-engineered shelf. Only a few browser-playable ones exist; add more

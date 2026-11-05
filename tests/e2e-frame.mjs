@@ -68,5 +68,68 @@ for (const [name, c] of Object.entries(cases)) {
   catch (e) { failed++; console.log('FAIL ', name, e.message.slice(0, 400)); }
   await page.close();
 }
+
+// Storage flush immediately before destroy and reload on next load
+{
+  const page = await browser.newPage();
+  await page.goto('http://127.0.0.1:4181/tests/harness.html');
+  const r = await page.evaluate(async () => {
+    const host = document.getElementById('host');
+    let saved = null;
+    const files = new Map([
+      ['index.html', new TextEncoder().encode(`<!doctype html><script>
+        localStorage.setItem('score', '42');
+        parent.postMessage({ t: 'wrote' }, '*');
+      </script>`)],
+    ]);
+    let wroteResolve;
+    const wrotePromise = new Promise(res => { wroteResolve = res; });
+    const onWrote = e => { if (e.data && e.data.t === 'wrote') wroteResolve(); };
+    window.addEventListener('message', onWrote);
+
+    const m1 = ZylithFrame.mount(host, { files, entry: 'index.html' }, {
+      onSave: d => { saved = d; },
+    });
+    await wrotePromise;
+    window.removeEventListener('message', onWrote);
+
+    // Call destroy immediately before debounced timer
+    m1.destroy();
+    await new Promise(res => setTimeout(res, 50));
+
+    // Reload with flushed data
+    host.textContent = '';
+    let loadedValue = null;
+    const reloadFiles = new Map([
+      ['index.html', new TextEncoder().encode(`<!doctype html><script>
+        parent.postMessage({ t: 'loaded', val: localStorage.getItem('score') }, '*');
+      </script>`)],
+    ]);
+    let loadedResolve;
+    const loadedPromise = new Promise(res => { loadedResolve = res; });
+    const onLoaded = e => { if (e.data && e.data.t === 'loaded') { loadedValue = e.data.val; loadedResolve(); } };
+    window.addEventListener('message', onLoaded);
+
+    const m2 = ZylithFrame.mount(host, { files: reloadFiles, entry: 'index.html' }, {
+      saves: saved,
+    });
+    await loadedPromise;
+    window.removeEventListener('message', onLoaded);
+    m2.destroy();
+
+    return { saved, loadedValue };
+  });
+
+  try {
+    assert.deepEqual(r.saved, { score: '42' }, 'data written before destroy must be flushed');
+    assert.equal(r.loadedValue, '42', 'flushed data must reload on next load');
+    console.log('ok    storage-destroy-reload');
+  } catch (e) {
+    failed++;
+    console.log('FAIL  storage-destroy-reload', e.message);
+  }
+  await page.close();
+}
+
 await browser.close(); server.close();
 process.exit(failed ? 1 : 0);
