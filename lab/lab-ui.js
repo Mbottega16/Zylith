@@ -117,7 +117,9 @@
     const { files } = loaded;
     const info = loaded.info || {};
     if (!files.size) {
-      cur = { files, info, scan: { verdict: 'reject', headline: 'Not a runnable web game.', findings: [], gameSignals: [], notes: [], stats: { files: 0, bytes: 0 }, notAGame: loaded.native ? "This repository is native source code (C, C++, Rust, and so on). It must be compiled for a computer or console, and most decompilation projects also need your own copy of the game. It has no browser build." : loaded.needsBuild ? 'This repository is source code that needs a build step (npm run build). It has no page to open.' : 'No HTML page was found in this repository.', externalHosts: [] }, done: true };
+      const missing = (info && info.missing) || [];
+      const entryFailed = missing.some(p => /\.html?$/i.test(p)) || missing.length > 0;
+      cur = { files, info, scan: { verdict: 'reject', headline: entryFailed ? 'Download failed.' : 'Not a runnable web game.', findings: [], gameSignals: [], notes: [], stats: { files: 0, bytes: 0 }, notAGame: loaded.native ? "This repository is native source code (C, C++, Rust, and so on). It must be compiled for a computer or console, and most decompilation projects also need your own copy of the game. It has no browser build." : loaded.needsBuild ? 'This repository is source code that needs a build step (npm run build). It has no page to open.' : entryFailed ? 'The entry page failed to download from the repository.' : 'No HTML page was found in this repository.', externalHosts: [] }, done: true };
       renderReport();
       return;
     }
@@ -132,9 +134,14 @@
   }
 
   function decide() {
-    const { scan, judged: j, done } = cur;
+    const { scan, judged: j, done, info } = cur;
+    const missing = (info && info.missing) || [];
+    const entryFailed = !scan.entry && (missing.some(p => /\.html?$/i.test(p)) || !cur.files.size);
     if (scan.verdict === 'block') return { tone: 'bad', head: 'Blocked: dangerous content', detail: 'The scan found code or files that a game never needs. Zylith will not run or keep it.', can: false };
-    if (scan.verdict === 'reject') return { tone: 'bad', head: 'Not a runnable web game', detail: scan.notAGame, can: false };
+    if (scan.verdict === 'reject') {
+      if (entryFailed) return { tone: 'bad', head: 'Download failed', detail: 'The entry page failed to download from the repository.', can: false };
+      return { tone: 'bad', head: 'Not a runnable web game', detail: scan.notAGame, can: false };
+    }
     if (!j || !cur.started) return { tone: 'work', head: 'Testing in the sandbox...', detail: 'The game runs in a locked box for a few seconds. Zylith watches what it does.', can: false };
     if (j.result === 'escape') return { tone: 'bad', head: 'Unsafe: it tried to escape its box', detail: 'The game tried to open a window or change the page. Zylith will not keep it.', can: false };
     if (!done) return { tone: 'work', head: 'Testing in the sandbox...', detail: 'Watching the game. You can also play it in the preview.', can: false };
@@ -162,10 +169,30 @@
     return `<ul class="lab-list">${cur.judged.checks.map(c => `<li><span class="${c.ok ? 'yes' : cur.done ? 'no' : 'wait'}">${c.ok ? '✔' : cur.done ? '✖' : '…'}</span><div>${esc(c.label)}${c.detail ? '<small>' + esc(c.detail) + '</small>' : ''}</div></li>`).join('')}</ul>`;
   }
 
+  function missingHtml() {
+    const missing = (cur.info && cur.info.missing) || [];
+    if (!missing.length) return '';
+    const entryFailed = !cur.scan.entry && (missing.some(p => /\.html?$/i.test(p)) || !cur.files.size);
+    const rows = missing.map(f => {
+      const isHtml = /\.html?$/i.test(f);
+      return `<li><span class="no">✖</span><div><code>${esc(f)}</code>${isHtml ? '<small>Entry page failed to download</small>' : '<small>File failed to download</small>'}</div></li>`;
+    });
+    const warnMsg = entryFailed
+      ? `Warning: ${missing.length === 1 ? 'the entry page' : `${missing.length} files (including the entry page)`} failed to download from the repository. The game cannot run.`
+      : `Warning: ${missing.length === 1 ? '1 file' : `${missing.length} files`} failed to download and may cause issues:`;
+    return `<div class="lab-missing" id="labMissing"><h3 class="warn">Missing files (${missing.length})</h3><p class="lab-fine" style="margin-bottom:6px">${warnMsg}</p><ul class="lab-list">${rows.join('')}</ul></div>`;
+  }
+
   function renderReport() {
     const box = $('#labReport');
-    const d = decide();
     const { scan, info } = cur;
+    const missing = (info && info.missing) || [];
+    const entryFailed = !scan.entry && (missing.some(p => /\.html?$/i.test(p)) || !cur.files.size);
+    if (entryFailed) {
+      scan.headline = 'Download failed.';
+      scan.notAGame = 'The entry page failed to download from the repository.';
+    }
+    const d = decide();
     const blocked = scan.verdict === 'block' || scan.verdict === 'reject';
     const hosted = info.homepage && /^https?:/i.test(info.homepage) ? info.homepage : '';
     box.hidden = false;
@@ -176,6 +203,7 @@
         <div>${blocked ? `<div class="lab-stage"><div class="player-msg"><span>${scan.verdict === 'reject' && hosted ? 'This repository has a hosted page:' : 'Nothing was run.'}</span>${scan.verdict === 'reject' && hosted ? `<a class="button button-primary" target="_blank" rel="noopener noreferrer" href="${esc(hosted)}">Open ${esc(new URL(hosted).hostname)} ↗</a>` : ''}</div></div>` : '<div class="lab-stage" id="labStage"></div>'}
           ${blocked ? '' : '<p class="lab-fine" style="margin-top:8px">This preview is live. Click it and play. The game cannot reach the internet or this page.</p>'}</div>
         <div class="lab-panel">
+          ${missingHtml()}
           <div><h3>Sandbox test</h3><div id="labChecks">${blocked ? '<p class="lab-fine">Skipped.</p>' : checksHtml()}</div></div>
           <div><h3>Code scan</h3>${findingsHtml()}</div>
           ${scan.gameSignals.length ? `<div><h3>Game signals</h3><div class="lab-signals">${scan.gameSignals.map(s => `<span>${esc(s)}</span>`).join('')}</div></div>` : ''}

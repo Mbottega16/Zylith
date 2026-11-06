@@ -20,6 +20,14 @@ This repo is public, so private planning notes stay in the owner's vault
 
 ---
 
+## 2026-11-06 — surface missing download files in Add-a-game report
+
+*Mac · Antigravity · commits on `crew/jmw4ipaoi965c`*
+- **Changed:** In `lab/lab-ui.js`, checked `cur.info.missing` in `renderReport()`, `decide()`, and `analyse()`. Rendered a warning panel listing each missing file (`#labMissing`). If the entry page failed to download (`!scan.entry && missing.length`), clarified that download failed rather than claiming no web game exists. Added styling in `lab/lab.css` for `.lab-panel h3.warn` and `.lab-list code`. Added browser test steps in `tests/e2e-ui.mjs`.
+- **Why:** When repository files failed to download during GitHub import (particularly the HTML entry page), the report previously claimed "Not a runnable web game" / "No HTML page found" without explaining that the download failed or which files were missing.
+- **Verified:** `node tests/scan.test.mjs` → 67 pass, 0 fail. `node --test tests/` → 100 pass, 0 fail. `node tests/e2e-ui.mjs` → 9 pass, 0 fail (including entry download failure and non-entry missing files tests). `node tests/e2e-frame.mjs` → 7 pass, 0 fail. `node tests/e2e-remove.mjs` → 6 pass, 0 fail.
+- **Left open:** none.
+
 ## 2026-11-06 — support multi-word queries in library search
 
 *Mac · Antigravity · commits on `crew/jmw4ied3o20c0`*

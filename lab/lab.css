@@ -51,6 +51,7 @@
 .lab-stage .player-msg{font-size:13px}
 .lab-panel{display:grid;gap:14px;min-width:0}
 .lab-panel h3{margin:0 0 6px;font:10px var(--mono);letter-spacing:.14em;color:var(--lime);text-transform:uppercase}
+.lab-panel h3.warn{color:var(--pink)}
 .lab-list{margin:0;padding:0;list-style:none;display:grid;gap:6px;font-size:12px;line-height:1.5}
 .lab-list li{display:grid;grid-template-columns:20px 1fr;gap:6px}
 .lab-list small{display:block;color:var(--muted);font-size:11px;word-break:break-word}
@@ -68,4 +69,4 @@
 .sandbox-frame{background:#000}
 @media(max-width:760px){.lab-dialog{padding:22px 16px}.lab-cols{grid-template-columns:1fr}.lab-meta{grid-template-columns:1fr}.player-dialog{height:calc(100vh - 12px)}}
 .link-button{border:0;background:none;padding:0;color:var(--lime);font:inherit;font-weight:700;text-decoration:underline;cursor:pointer}
-.lab-list.findings li{display:block}.lab-list.findings code{font:11px var(--mono);color:var(--cyan)}
+.lab-list.findings li{display:block}.lab-list code{font:11px var(--mono);color:var(--cyan)}

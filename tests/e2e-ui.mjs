@@ -122,6 +122,76 @@ await step('stored game survives a reload and can be deleted', async () => {
   await page.waitForFunction(() => document.querySelector('#countLocal').textContent === '0');
 });
 
+await step('missing download files are surfaced in the Add-a-game report panel', async () => {
+  await openAdd(); await chooseTab('github');
+  await page.evaluate(() => {
+    window._origFromGithub = window.ZylithPack.fromGithub;
+    window.ZylithPack.fromGithub = async () => ({
+      files: new Map(),
+      info: {
+        title: 'Missing Game',
+        repoUrl: 'https://github.com/example/missing-game',
+        missing: ['index.html', 'assets/music.ogg', 'sprites/player.png']
+      }
+    });
+  });
+  await page.locator('#ghInput').fill('https://github.com/example/missing-game');
+  await page.locator('#ghForm button[type=submit]').click();
+  await page.waitForSelector('#labReport:not([hidden])');
+  await page.waitForSelector('#labMissing');
+
+  const verdictHead = await page.locator('#labVerdict b').textContent();
+  assert.equal(verdictHead, 'Download failed');
+  const verdictDetail = await page.locator('#labVerdict span').textContent();
+  assert.match(verdictDetail, /download/i);
+  assert.doesNotMatch(verdictDetail, /no web game exists|No HTML page was found/i);
+
+  const missingText = await page.locator('#labMissing').textContent();
+  assert.match(missingText, /index\.html/);
+  assert.match(missingText, /assets\/music\.ogg/);
+  assert.match(missingText, /sprites\/player\.png/);
+  assert.match(missingText, /warning/i);
+
+  await page.evaluate(() => {
+    window.ZylithPack.fromGithub = window._origFromGithub;
+  });
+  await page.keyboard.press('Escape');
+});
+
+await step('missing non-entry files surface warning while test proceeds', async () => {
+  await openAdd(); await chooseTab('github');
+  await page.evaluate(() => {
+    const enc = new TextEncoder();
+    const gameHtml = `<!doctype html><canvas id=c width=200 height=150></canvas><script>
+const x=document.getElementById('c').getContext('2d');let n=0,score=0;addEventListener('keydown',()=>{score++});
+function f(){n++;x.fillRect(n%100,10,20,20);requestAnimationFrame(f)}f();</script>`;
+    window._origFromGithub = window.ZylithPack.fromGithub;
+    window.ZylithPack.fromGithub = async () => ({
+      files: new Map([['index.html', enc.encode(gameHtml)]]),
+      info: {
+        title: 'Partial Game',
+        repoUrl: 'https://github.com/example/partial-game',
+        missing: ['audio/sound.wav']
+      }
+    });
+  });
+  await page.locator('#ghInput').fill('https://github.com/example/partial-game');
+  await page.locator('#ghForm button[type=submit]').click();
+  await page.waitForSelector('#labMissing');
+
+  const missingText = await page.locator('#labMissing').textContent();
+  assert.match(missingText, /audio\/sound\.wav/);
+  assert.match(missingText, /warning/i);
+
+  const verdictHead = await page.locator('#labVerdict b').textContent();
+  assert.notEqual(verdictHead, 'Download failed');
+
+  await page.evaluate(() => {
+    window.ZylithPack.fromGithub = window._origFromGithub;
+  });
+  await page.keyboard.press('Escape');
+});
+
 if (net) {
   await step('GitHub import: 2048 runs in the sandbox', async () => {
     await openAdd();

@@ -71,15 +71,15 @@ Ignore `.DS_Store`, `__pycache__/`, and local screenshots.
 
 *Overwrite this at the end of every session; move the previous handoff into `HISTORY.md` first.*
 
-- **Last Worked On (2026-11-06):** multi-word catalog search in `app.js`.
-  In `filteredGames()`, split the search query on whitespace into terms and verified that each
-  game's searchable text matches every term (`words.every(w => text.includes(w))`), allowing
-  searches like '3d racing' or 'racing 3d' to match games regardless of word order. Added browser
-  test step in `tests/e2e-ui.mjs`.
-- **Current State:** work branch `crew/jmw4ied3o20c0`. Offline run on this tree:
+- **Last Worked On (2026-11-06):** surface missing download files in `lab/lab-ui.js`.
+  Checked `cur.info.missing` in `renderReport()` and `decide()`; rendered a warning panel in
+  `#labReport` listing missing download files. If the entry page failed to download, clarified
+  that download failed rather than claiming no web game exists. Styled warnings in `lab/lab.css`
+  and added browser test steps in `tests/e2e-ui.mjs`.
+- **Current State:** work branch `crew/jmw4ipaoi965c`. Offline run on this tree:
   `node --test tests/` → 100 pass, 0 fail; `node tests/scan.test.mjs` → 67 pass, 0 fail.
-  Browser suites pass: `node tests/e2e-frame.mjs` (all 7 cases), `node tests/e2e-ui.mjs` (all 7
-  steps including multi-word order-independent search), and `node tests/e2e-remove.mjs`.
+  Browser suites pass: `node tests/e2e-frame.mjs` (all 7 cases), `node tests/e2e-ui.mjs` (all 9
+  steps including missing entry and non-entry files tests), and `node tests/e2e-remove.mjs`.
 - **Next Up:**
   1. Grow the reverse-engineered shelf. Only a few browser-playable ones exist; add more
      by hand through `tools/reverse-include.txt`.
