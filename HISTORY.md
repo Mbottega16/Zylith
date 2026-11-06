@@ -20,6 +20,14 @@ This repo is public, so private planning notes stay in the owner's vault
 
 ---
 
+## 2026-11-06 — support multi-word queries in library search
+
+*Mac · Antigravity · commits on `crew/jmw4ied3o20c0`*
+- **Changed:** `filteredGames()` in `app.js` splits the search string on whitespace into terms and verifies that the game's searchable text contains every term (`words.every(w => text.includes(w))`). Added test step in `tests/e2e-ui.mjs` verifying multi-word queries match regardless of word order.
+- **Why:** searches with multiple words (e.g. "3d racing" vs "racing 3d") failed to match games where words appeared non-consecutively or in different order across metadata fields.
+- **Verified:** `node tests/scan.test.mjs` → 67 pass, 0 fail. `node --test tests/` → 100 pass, 0 fail. `node tests/e2e-ui.mjs` → 7 pass, 0 fail. `node tests/e2e-frame.mjs` → 7 pass, 0 fail. `node tests/e2e-remove.mjs` → 6 pass, 0 fail.
+- **Left open:** none.
+
 ## 2026-11-05 — synchronously flush sandbox storage before frame unmount
 
 *Mac · Antigravity · commits on `crew/jmw34jt6ie5c6`*

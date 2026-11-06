@@ -38,11 +38,12 @@
     $('#platformFilters').innerHTML = platforms.map(v => `<button class="filter-chip ${platform === v ? 'active' : ''}" data-kind="platform" data-value="${escapeHtml(v)}">${escapeHtml(v)}</button>`).join('');
   }
   function filteredGames() {
+    const words = search.toLowerCase().split(/\s+/).filter(Boolean);
     const rows = games().filter(g => {
       const matchShelf = activeShelf === 'All games' || (activeShelf === 'Recently added' && (userGames.some(u => u.id === g.id) || localGames.some(u => u.id === g.id)));
       const matchAccess = inTab(g);
-      const needle = search.toLowerCase(), text = [g.title, g.creator, g.genre, g.mood, g.platform, g.description].join(' ').toLowerCase();
-      return matchShelf && matchAccess && (!needle || text.includes(needle)) && (genre === 'All' || g.genre === genre) && (platform === 'All' || g.platform === platform);
+      const text = [g.title, g.creator, g.genre, g.mood, g.platform, g.description].join(' ').toLowerCase();
+      return matchShelf && matchAccess && words.every(w => text.includes(w)) && (genre === 'All' || g.genre === genre) && (platform === 'All' || g.platform === platform);
     });
     const sort = $('#sortSelect').value, isNew = g => Number(localGames.some(x => x.id === g.id) || userGames.some(x => x.id === g.id));
     if (sort === 'az') rows.sort((a, b) => a.title.localeCompare(b.title));

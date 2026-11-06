@@ -59,6 +59,22 @@ await step('catalog card opens the in-page player', async () => {
 await step('removed features stay removed', async () => {
   assert.equal(await page.locator('[data-access=files], [data-access=source], [data-shelf=Favorites], .save-button').count(), 0);
 });
+await step('multi-word search matches games regardless of word order', async () => {
+  const searchInput = page.locator('#searchInput');
+  await searchInput.fill('3d racing');
+  await page.waitForTimeout(100);
+  const forward = await page.locator('.game-card h3').allTextContents();
+  assert.ok(forward.length > 0, 'matches for "3d racing"');
+  assert.ok(forward.includes('Bruno Simon'), 'matches Bruno Simon');
+
+  await searchInput.fill('racing 3d');
+  await page.waitForTimeout(100);
+  const reverse = await page.locator('.game-card h3').allTextContents();
+  assert.deepEqual(forward, reverse, 'forward and reverse word order match the same games');
+
+  await searchInput.fill('');
+  await page.waitForTimeout(100);
+});
 
 async function openAdd() { await page.locator('#submitTop').click(); await page.waitForSelector('#labDialog[open]'); }
 async function chooseTab(name) { await page.locator(`[data-labtab=${name}]`).click(); }
