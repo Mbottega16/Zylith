@@ -63,6 +63,11 @@ await step('a hosted link added from the form shows in the list', async () => {
   await addHostedLink(DROP, 'https://example.com/drop');
   assert.equal(await card(DROP).count(), 1);
   assert.equal(await card(KEEP).count(), 1);
+  assert.equal(await page.locator('[data-access="local"].active').count(), 1);
+  assert.equal(await page.locator('#countLocal').textContent(), '2');
+  const label = await card(DROP).locator('.play-label').textContent();
+  assert.match(label, /Opens in new tab/);
+  assert.match(label, /↗/);
 });
 
 await step('Remove button shows only for hosted links', async () => {
@@ -71,11 +76,13 @@ await step('Remove button shows only for hosted links', async () => {
   await page.locator('#closeGame').click();
   await page.waitForFunction(() => !document.getElementById('gameDialog').open);
   await page.locator('[data-shelf="All games"]').click();
+  await page.locator('[data-access="instant"]').click();
   await page.locator('.game-card:not([data-game^="submitted-"])').first().click();
   await page.waitForSelector('#gameDialog[open]');
   assert.equal(await page.locator('#removeHosted').isVisible(), false, 'catalog row shows Remove');
   await page.locator('#closeGame').click();
   await page.waitForFunction(() => !document.getElementById('gameDialog').open);
+  await page.locator('[data-access="local"]').click();
   await page.locator('[data-shelf="Recently added"]').click();
 });
 
@@ -106,6 +113,7 @@ await step('confirming removes the link from the list and storage', async () => 
 await step('removed link stays gone after a reload', async () => {
   await page.reload();
   await page.waitForSelector('.game-card');
+  await page.locator('[data-access="local"]').click();
   // Search the whole catalog, not just the first page of cards.
   await page.locator('#searchInput').fill(DROP);
   assert.equal(await card(DROP).count(), 0, 'removed link came back after reload');
@@ -118,6 +126,16 @@ await step('removed link stays gone after a reload', async () => {
 await step('the other hosted link is still playable after removal', async () => {
   await openCard(KEEP);
   assert.equal(await page.locator('#removeHosted').isVisible(), true);
+  assert.equal(await page.locator('#playHere').isVisible(), false);
+  assert.equal(await page.locator('#playGame').isVisible(), true);
+  assert.equal(await page.locator('#playGame').getAttribute('target'), '_blank');
+  assert.equal(await page.locator('#playGame').getAttribute('href'), 'https://example.com/keep');
+  const [popup] = await Promise.all([
+    page.waitForEvent('popup'),
+    page.locator('#playGame').click(),
+  ]);
+  assert.equal(popup.url(), 'https://example.com/keep');
+  await popup.close();
   await page.locator('#closeGame').click();
 });
 

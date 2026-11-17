@@ -71,15 +71,12 @@ Ignore `.DS_Store`, `__pycache__/`, and local screenshots.
 
 *Overwrite this at the end of every session; move the previous handoff into `HISTORY.md` first.*
 
-- **Last Worked On (2026-11-06):** surface missing download files in `lab/lab-ui.js`.
-  Checked `cur.info.missing` in `renderReport()` and `decide()`; rendered a warning panel in
-  `#labReport` listing missing download files. If the entry page failed to download, clarified
-  that download failed rather than claiming no web game exists. Styled warnings in `lab/lab.css`
-  and added browser test steps in `tests/e2e-ui.mjs`.
-- **Current State:** work branch `crew/jmw4ipaoi965c`. Offline run on this tree:
+- **Last Worked On (2026-11-17):** show user-submitted hosted links in My games library tab.
+  In `app.js`, included `userGames` when `accessFilter === 'local'`, incremented `countLocal` accordingly, rendered external badge `↗` and `'Opens in new tab'` indicator on cards, set `#playGame` to open in a new tab (`target="_blank"`) on click, and switched access tab to `'local'` immediately upon submission. Updated `tests/e2e-remove.mjs` verifying hosted links show in My games tab with external badge and open in new tab on click.
+- **Current State:** work branch `crew/jmw883uvf5431`. Offline run on this tree:
   `node --test tests/` → 100 pass, 0 fail; `node tests/scan.test.mjs` → 67 pass, 0 fail.
   Browser suites pass: `node tests/e2e-frame.mjs` (all 7 cases), `node tests/e2e-ui.mjs` (all 9
-  steps including missing entry and non-entry files tests), and `node tests/e2e-remove.mjs`.
+  steps including missing entry and non-entry files tests), and `node tests/e2e-remove.mjs` (all 6 steps).
 - **Next Up:**
   1. Grow the reverse-engineered shelf. Only a few browser-playable ones exist; add more
      by hand through `tools/reverse-include.txt`.

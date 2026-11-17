@@ -4,8 +4,9 @@
   let userGames = safeParse(localStorage.getItem(STORAGE), []);   // hosted-page links the user added
   let localGames = [];                                            // sandboxed games stored in this browser (IndexedDB)
   let activeShelf = 'All games', search = '', genre = 'All', platform = 'All', accessFilter = 'instant', pageSize = 12, listView = false;
-  const accessType = g => g.accessType || (g.playMode === 'Browser' ? 'instant' : g.playMode === 'Web page' ? 'source' : 'files');
-  const accessLabel = g => ({ instant: g.embed === false ? 'PLAY · NEW TAB' : 'PLAY HERE', local: 'MY GAME' })[accessType(g)] || 'GAME PAGE';
+  const isHosted = g => userGames.some(u => u.id === g.id) || (g && String(g.id).startsWith('submitted-'));
+  const accessType = g => isHosted(g) ? 'local' : (g.accessType || (g.playMode === 'Browser' ? 'instant' : g.playMode === 'Web page' ? 'source' : 'files'));
+  const accessLabel = g => isHosted(g) ? 'Opens in new tab' : ({ instant: g.embed === false ? 'PLAY · NEW TAB' : 'PLAY HERE', local: 'MY GAME' })[accessType(g)] || 'GAME PAGE';
   const $ = (s, root = document) => root.querySelector(s);
   const grid = $('#gameGrid'), empty = $('#emptyState'), dialog = $('#gameDialog');
   const games = () => [...localGames, ...userGames, ...seed];
@@ -54,7 +55,7 @@
   function render() {
     const rows = filteredGames(), visible = rows.slice(0, pageSize);
     grid.classList.toggle('list-view', listView);
-    grid.innerHTML = visible.map((g, i) => `<article class="game-card" data-game="${escapeHtml(g.id)}" tabindex="0" role="button" aria-label="View ${escapeHtml(g.title)}"><div class="cover-art" style="--card-bg:${escapeHtml(g.colors?.[0] || '#29213c')};--card-accent:${escapeHtml(g.colors?.[1] || '#c8ff5e')}"><span class="cover-index">${String(i + 1).padStart(2, '0')} / ZY</span><span class="cover-symbol">${escapeHtml(g.symbol || '✳')}</span><span class="cover-word">${escapeHtml(g.word || '')}</span></div><div class="card-copy"><div class="card-topline"><span class="genre-label">${escapeHtml(g.genre || 'Indie')}</span><span class="play-label">${accessType(g) === 'instant' || accessType(g) === 'local' ? '▶' : '↗'} ${escapeHtml(accessLabel(g))}</span></div><h3>${escapeHtml(g.title)}</h3><p class="creator-name">by ${escapeHtml(g.creator || 'Independent creator')}</p><div class="card-bottom"><span class="mood-tag">${escapeHtml(g.platform || g.mood || 'Explore')}</span><span class="card-arrow">↗</span></div></div></article>`).join('');
+    grid.innerHTML = visible.map((g, i) => `<article class="game-card" data-game="${escapeHtml(g.id)}" ${isHosted(g) ? 'data-external="true"' : ''} tabindex="0" role="button" aria-label="View ${escapeHtml(g.title)}"><div class="cover-art" style="--card-bg:${escapeHtml(g.colors?.[0] || '#29213c')};--card-accent:${escapeHtml(g.colors?.[1] || '#c8ff5e')}"><span class="cover-index">${String(i + 1).padStart(2, '0')} / ZY</span><span class="cover-symbol">${escapeHtml(g.symbol || '✳')}</span><span class="cover-word">${escapeHtml(g.word || '')}</span></div><div class="card-copy"><div class="card-topline"><span class="genre-label">${escapeHtml(g.genre || 'Indie')}</span><span class="play-label ${isHosted(g) ? 'external-badge' : ''}">${isHosted(g) ? '↗' : (accessType(g) === 'instant' || accessType(g) === 'local' ? '▶' : '↗')} ${escapeHtml(accessLabel(g))}</span></div><h3>${escapeHtml(g.title)}</h3><p class="creator-name">by ${escapeHtml(g.creator || 'Independent creator')}</p><div class="card-bottom"><span class="mood-tag">${escapeHtml(g.platform || g.mood || 'Explore')}</span><span class="card-arrow">↗</span></div></div></article>`).join('');
     empty.hidden = visible.length !== 0; grid.hidden = visible.length === 0; $('#loadMoreWrap').hidden = visible.length >= rows.length;
     if (visible.length === 0) {
       const mine = accessFilter === 'local';
@@ -77,21 +78,22 @@
 
   function openGame(id) {
     const g = games().find(x => x.id === id); if (!g) return;
-    const kind = accessType(g), canEmbed = kind === 'instant' && g.embed !== false;
+    const hosted = isHosted(g);
+    const kind = hosted ? 'hosted' : accessType(g), canEmbed = kind === 'instant' && g.embed !== false;
     $('#dialogTitle').textContent = g.title; $('#dialogDescription').textContent = g.description || 'Explore this game on the creator’s page.'; $('#dialogGenre').textContent = `${g.genre || 'INDIE'}  ·  ${g.creator || 'INDEPENDENT CREATOR'}`.toUpperCase();
-    const meta = [g.mood, ({ instant: canEmbed ? 'Plays right here' : 'Opens in a new tab', local: 'Sandboxed, saved in this browser' })[kind], g.platform, g.license && g.license !== 'NOASSERTION' ? g.license : '', g.stars ? '★ ' + g.stars.toLocaleString() : ''];
+    const meta = [g.mood, hosted || (kind === 'instant' && !canEmbed) ? 'Opens in a new tab' : (canEmbed ? 'Plays right here' : 'Sandboxed, saved in this browser'), g.platform, g.license && g.license !== 'NOASSERTION' ? g.license : '', g.stars ? '★ ' + g.stars.toLocaleString() : ''];
     $('#dialogMeta').innerHTML = meta.filter(Boolean).map(v => `<span>${escapeHtml(v)}</span>`).join('');
     $('#dialogArt').style.background = `linear-gradient(135deg, ${g.colors?.[0] || '#48366b'}, #211a32)`; $('#dialogArt').style.setProperty('--art-accent', g.colors?.[1] || '#c8ff5e'); $('#dialogArt').innerHTML = `<span style="position:relative;z-index:1;font-size:95px;color:${escapeHtml(g.colors?.[1] || '#c8ff5e')}">${escapeHtml(g.symbol || '✳')}</span>`;
     const here = $('#playHere'), tab = $('#playGame'), del = $('#deleteLocal'), note = $('#creatorNote');
-    here.hidden = !(canEmbed || kind === 'local'); here.dataset.play = id;
-    tab.hidden = kind === 'local';
+    here.hidden = hosted || !(canEmbed || kind === 'local'); here.dataset.play = id;
+    tab.hidden = !hosted && kind === 'local';
     tab.href = g.url || '#';
     tab.className = 'button ' + (here.hidden ? 'button-primary' : 'button-outline');
     tab.textContent = canEmbed ? 'Open in new tab ↗' : 'Play in new tab ↗';
     tab.setAttribute('aria-label', `${tab.textContent.replace(' ↗', '')} for ${g.title}`);
-    del.hidden = kind !== 'local'; del.dataset.id = id;
+    del.hidden = hosted || kind !== 'local'; del.dataset.id = id;
     const removeHosted = $('#removeHosted'); removeHosted.hidden = !id.startsWith('submitted-'); removeHosted.dataset.id = id;
-    note.textContent = ({ instant: canEmbed ? 'Runs on the creator’s own page, inside Zylith.' : 'This creator’s page cannot be shown inside Zylith, so it opens in a new tab.', local: 'Runs in a locked box with no internet. Scanned and tested when you added it.' })[kind];
+    note.textContent = hosted ? 'This creator’s page cannot be shown inside Zylith, so it opens in a new tab.' : ({ instant: canEmbed ? 'Runs on the creator’s own page, inside Zylith.' : 'This creator’s page cannot be shown inside Zylith, so it opens in a new tab.', local: 'Runs in a locked box with no internet. Scanned and tested when you added it.' })[kind];
     dialog.showModal();
   }
   function selectShelf(s) { activeShelf = s; pageSize = 12; document.querySelectorAll('.shelf-tab').forEach(b => b.classList.toggle('active', b.dataset.shelf === s)); drawFilters(); render(); }
@@ -126,7 +128,7 @@
   $('#playHere').addEventListener('click', () => {
     const g = games().find(x => x.id === $('#playHere').dataset.play); if (!g) return;
     dialog.close();
-    if (accessType(g) === 'local') ZylithLab.playLocal(g.localMeta); else ZylithLab.playRemote(g);
+    if (isHosted(g)) window.open(g.url, '_blank'); else if (accessType(g) === 'local') ZylithLab.playLocal(g.localMeta); else ZylithLab.playRemote(g);
   });
   $('#deleteLocal').addEventListener('click', async () => {
     const id = $('#deleteLocal').dataset.id, g = localGames.find(x => x.id === id);
@@ -145,8 +147,8 @@
     try { url = new URL(f.get('url')); if (!['http:', 'https:'].includes(url.protocol)) throw new Error(); } catch { toast('Please enter a valid http or https URL.'); return; }
     const title = String(f.get('title')).trim(); if (!title) { toast('Add a title first.'); return; }
     const palette = PALETTES[Math.floor(Math.random() * 5)], playMode = String(f.get('playMode'));
-    userGames.unshift({ id: 'submitted-' + Date.now(), title, creator: String(f.get('creator')).trim(), genre: String(f.get('genre')), mood: 'Hosted link', playMode, accessType: 'instant', embed: false, url: url.href, description: 'A hosted page you added. Zylith could not scan it, so it opens exactly as its creator hosts it.', symbol: ['✳', '◈', '✿', '▲', '☾'][Math.floor(Math.random() * 5)], word: title.slice(0, 18).toUpperCase(), colors: palette, featured: false, submittedAt: Date.now() });
-    persist(); e.currentTarget.reset(); $('#labDialog').close(); selectShelf('Recently added'); setAccess(userGames[0].accessType); toast('Added to this browser’s Zylith list.');
+    userGames.unshift({ id: 'submitted-' + Date.now(), title, creator: String(f.get('creator')).trim(), genre: String(f.get('genre')), mood: 'Hosted link', playMode, accessType: 'local', embed: false, url: url.href, description: 'A hosted page you added. Zylith could not scan it, so it opens exactly as its creator hosts it.', symbol: ['✳', '◈', '✿', '▲', '☾'][Math.floor(Math.random() * 5)], word: title.slice(0, 18).toUpperCase(), colors: palette, featured: false, submittedAt: Date.now() });
+    persist(); e.currentTarget.reset(); $('#labDialog').close(); selectShelf('Recently added'); setAccess('local'); toast('Added to this browser’s Zylith list.');
   });
   $('#themeButton').addEventListener('click', () => { document.body.classList.toggle('light'); localStorage.setItem('zylith-theme', document.body.classList.contains('light') ? 'light' : 'dark'); });
   if (localStorage.getItem('zylith-theme') === 'light') document.body.classList.add('light');

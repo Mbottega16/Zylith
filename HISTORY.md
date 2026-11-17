@@ -20,6 +20,14 @@ This repo is public, so private planning notes stay in the owner's vault
 
 ---
 
+## 2026-11-17 — show user-submitted hosted links in My games library tab
+
+*Mac · Antigravity · commits on `crew/jmw883uvf5431`*
+- **Changed:** In `app.js`, included `userGames` when `accessFilter === 'local'`, incremented `countLocal` accordingly, rendered external badge `↗` and `'Opens in new tab'` indicator on cards, set `#playGame` to open in a new tab (`target="_blank"`) on click, and switched access tab to `'local'` immediately upon submission. Updated `tests/e2e-remove.mjs` verifying hosted links show in My games tab with external badge and open in new tab on click.
+- **Why:** user-submitted hosted links were previously given `accessType: 'instant'`, displaying under "Play now" instead of "★ My games", leaving `countLocal` unincremented, and showing `PLAY · NEW TAB` instead of an external badge indicator.
+- **Verified:** `node tests/scan.test.mjs` → 67 pass, 0 fail. `node --test tests/` → 100 pass, 0 fail. `node tests/e2e-ui.mjs` → 9 pass, 0 fail. `node tests/e2e-frame.mjs` → 7 pass, 0 fail. `node tests/e2e-remove.mjs` → 6 pass, 0 fail.
+- **Left open:** none.
+
 ## 2026-11-06 — surface missing download files in Add-a-game report
 
 *Mac · Antigravity · commits on `crew/jmw4ipaoi965c`*
